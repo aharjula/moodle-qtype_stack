@@ -74,6 +74,12 @@ abstract class stack_input {
     protected $parameters;
 
     /**
+     * @var cassession with the question level variable definitions for validation
+     */
+    protected $vardefsession;
+
+
+    /**
      * Constructor
      *
      * @param string $name the name of the input. This is the name of the
@@ -304,6 +310,7 @@ abstract class stack_input {
             $lvars = new stack_cas_casstring('ev(listofvars('.$interpretedanswer.'),simp)');
             $lvars->get_valid('t', $this->get_parameter('strictSyntax', true),
                     $this->get_parameter('insertStars', 0), $this->get_parameter('allowWords', ''));
+            $lvars->set_key('lvars');
 
             $answer->set_cas_validation_casstring($this->name,
                     $this->get_parameter('forbidFloats', false), $this->get_parameter('lowestTerms', false),
@@ -311,12 +318,13 @@ abstract class stack_input {
                     $teacheranswer, $this->get_parameter('allowWords', ''));
             $localoptions->set_option('simplify', false);
 
-            $session = new stack_cas_session(array($answer, $lvars), $localoptions, 0);
+            $session = new stack_cas_session(array_merge($this->vardefsession->get_session(),array($answer, $lvars)), $localoptions, 0);
             $session->instantiate();
 
             $session = $session->get_session();
-            $answer = $session[0];
-            $lvars  = $session[1];
+
+            $answer = $session[count($session)-2];
+            $lvars  = $session[count($session)-1];
 
             $errors = stack_maxima_translate($answer->get_errors());
             if ('' != $errors) {
@@ -535,5 +543,14 @@ abstract class stack_input {
         }
         return $response;
     }
+
+    /**
+     * Transfers the variabledefinitions from question to input
+     *
+     * @param cassession
+     */
+     public function set_vardefsession($ses) {
+         $this->vardefsession = $ses;
+     }
 
 }

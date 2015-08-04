@@ -384,11 +384,14 @@ class stack_cas_session {
         return $this->session;
     }
 
-    public function prune_session($len) {
+    public function prune_session($len,$start=0) {
         if (!is_int($len)) {
             throw new stack_exception('stack_cas_session: prune_session $len must be an integer.');
         }
-        $newsession = array_slice($this->session, 0, $len);
+        if (!is_int($start)) {
+            throw new stack_exception('stack_cas_session: prune_session $start must be an integer.');
+        }
+        $newsession = array_slice($this->session, $start, $len);
         $this->session = $newsession;
     }
 

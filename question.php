@@ -43,6 +43,16 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         implements question_automatically_gradable_with_multiple_parts {
 
     /**
+     * @var string STACK specific: (state)variables, as authored by the teacher.
+     */
+    public $variabledefinitions;
+
+    /**
+     * @var string STACK specific: usage of this question for state storage identification.
+     */
+    public $questionusageid = -1;
+
+    /**
      * @var string STACK specific: variables, as authored by the teacher.
      */
     public $questionvariables;
@@ -174,6 +184,11 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     protected $prtresults = array();
 
     /**
+     * @var array[context] => array[name] => value first a cencus of state variables used secondly a store for values loaded
+     */
+    private $statevariables = null;
+
+    /**
      * Make sure the cache is valid for the current response. If not, clear it.
      */
     protected function validate_cache($response, $acceptvalid = null) {
@@ -213,6 +228,9 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
+        if (is_int($qa->get_usage_id())) {
+            $this->questionusageid = (int) $qa->get_usage_id();
+        }
         if (empty($this->inputs)) {
             return question_engine::make_behaviour('informationitem', $qa, $preferredbehaviour);
         }
@@ -237,7 +255,6 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function start_attempt(question_attempt_step $step, $variant) {
-
         // Work out the right seed to use.
         if (!is_null($this->seed)) {
             // Nasty hack, but if seed has already been set, then use that. This is
@@ -256,6 +273,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         }
         $step->set_qt_var('_seed', $this->seed);
 
+        $this->questimate_questionusageid();
         $this->initialise_question_from_seed();
     }
 
@@ -264,9 +282,21 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      */
     public function initialise_question_from_seed() {
         // Build up the question session out of all the bits that need to go into it.
+        $session = null;
+        // 0. question variable definitions.
+        $variabledefs = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
+        if ($this->has_state_variables()) {
+            // Load identified state variables and all instance variables
+            $session = new stack_cas_session($this->load_state_variables(),$this->options,$this->seed);
+            $session->merge_session($variabledefs->get_session());
+        } else {
+            $session = $variabledefs->get_session();
+        }
+        $sessionpreamblelength = count($session->get_session());
+
         // 1. question variables.
         $questionvars = new stack_cas_keyval($this->questionvariables, $this->options, $this->seed, 't');
-        $session = $questionvars->get_session();
+        $session->merge_session($questionvars->get_session());
 
         // 2. correct answer for all inputs.
         $response = array();
@@ -293,6 +323,15 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $prtpartiallycorrect = $this->prepare_cas_text($this->prtpartiallycorrect, $session);
         $prtincorrect        = $this->prepare_cas_text($this->prtincorrect, $session);
 
+        // If state variables are present add the retrival command
+        if ($this->has_state_variables()) {
+            // Actually stored in an variable named 'stackstatevars' but if we access it directly we would need to add an special case elsewhere
+            $cs = new stack_cas_casstring('stack_state_full_state(1)');
+            $cs->get_valid('t');
+            $cs->set_key('stackstateexport');
+            $session->add_vars(array($cs));
+        }
+
         // Now instantiate the session.
         $session->instantiate();
         if ($session->get_errors()) {
@@ -303,6 +342,11 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                     $session->get_errors($this->user_can_edit()));
         }
 
+        // If state variables are present store state changes
+        if ($this->has_state_variables()) {
+            $this->store_state_variables($session->get_value_key('stackstateexport'));
+        }
+
         // Finally, store only those values really needed for later.
         $this->questiontextinstantiated        = $questiontext->get_display_castext();
         $this->specificfeedbackinstantiated    = $feedbacktext->get_display_castext();
@@ -310,11 +354,252 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $this->prtcorrectinstantiated          = $prtcorrect->get_display_castext();
         $this->prtpartiallycorrectinstantiated = $prtpartiallycorrect->get_display_castext();
         $this->prtincorrectinstantiated        = $prtincorrect->get_display_castext();
-        $session->prune_session($sessionlength);
+        $session->prune_session($sessionlength-$sessionpreamblelength+1,$sessionpreamblelength);
         $this->session = $session;
 
         // Allow inputs to update themselves based on the model answers.
         $this->adapt_inputs();
+    }
+
+    /**
+     * Extracts names of state variables from a keyval string. For loading only relevant values from state-store.
+     * @param string that would work for a keyval-object
+     */
+    protected function extract_state_variable_references($keyvalstring) {
+        if (strpos($keyvalstring,"stack_state_") !== FALSE) {
+            $str = $keyvalstring;
+            $strings = stack_utils::all_substring_strings($str);
+            foreach ($strings as $key => $string) {
+                $str = str_replace('"'.$string.'"', '[STR:'.$key.']', $str);
+            }
+            $str = stack_utils::remove_comments($str);
+            $i = strpos($str,'stack_state_');
+            while ($i !== FALSE) {
+                $opening = -1;
+                $closing = $i+14;
+                $count = 0;
+                $in = FALSE;
+                while($closing<strlen($str)-1) {
+                    $closing++;
+                    $c = $str[$closing];
+                    if ($c == '(') {
+                        $count++;
+                        if (!$in) {
+                            $opening = $closing;
+                        }
+                        $in = TRUE;
+                    }else if ($c == ')') {
+                        $count--;
+                        if ($count == 0 && $in) {
+                            break;
+                        }
+                    }
+                }
+                $fnc = substr($str,$i,$opening - $i);
+                $params = substr($str,$opening,$closing-$opening+1);
+                $params = stack_utils::list_to_array($params,FALSE);
+                foreach ($strings as $key => $string) {
+                    foreach ($params as $ind => $param) {
+                        if ($ind == 2 && strpos($param,'[STR:'.$key.']')) {
+                            // String parameters need to stay strings in this case
+                            $params[$ind] = str_replace('[STR:'.$key.']', '"'.$string.'"', $param);
+                        } else {
+                            $params[$ind] = str_replace('[STR:'.$key.']', $string, $param);
+                        }
+                    }
+                }
+
+                $context = FALSE;
+                $name = FALSE;
+                $value = FALSE;
+                if ($fnc == 'stack_state_get' || $fnc == 'stack_state_get') {
+                    $context = $params[0];
+                    $name = $params[1];
+                    $value = $params[2];
+                } else if ($fnc == 'stack_state_increment_once' || $fnc == 'stack_state_decrement_once') {
+                    $context = 'global';
+                    $name = $params[0];
+                    $value = 0;
+                }
+
+                if (!array_key_exists($context,$this->statevariables)) {
+                    $this->statevariables[$context] = array();
+                }
+                if (!array_key_exists($name,$this->statevariables[$context])) {
+                    $this->statevariables[$context][$name] = $value;
+                }
+
+                $i = strpos($str,'stack_state_',$i+1);
+            }
+        }
+    }
+
+    /**
+     * Loads identified state variables from stores and builds the casstrings to inject them to maxima.
+     * Does nothing if no variables have been identified.
+     * @return an array of casstrings
+     */
+    protected function load_state_variables() {
+        global $USER, $DB;
+
+        $loadcommands = array();
+        // The instance variables are the most importatnt things and need to be loaded first
+        // And as they may exist without being visible in the code we need to check for them if 'globals' exist
+        if ((array_key_exists('instance',$this->statevariables) && count($this->statevariables['instance']) > 0) || (array_key_exists('global',$this->statevariables) && count($this->statevariables['global']) > 0)) {
+            // We are going to add these to the instance context anyway...
+            if (!array_key_exists('instance',$this->statevariables)) {
+                $this->statevariables['instance'] = array();
+            }
+
+            $states = $DB->get_records('qtype_stack_instance_state', array('seed' => $this->seed, 'userid' => $USER->id, 'questionid' => $this->id, 'questionusageid' => $this->questionusageid));
+            foreach ($states as $state) {
+                $this->statevariables['instance'][$state->name] = $state->value;
+            }
+        }
+
+        if (array_key_exists('global',$this->statevariables) && count($this->statevariables['global']) > 0) {
+            // We are going to add these to the instance context anyway...
+            if (!array_key_exists('instance',$this->statevariables)) {
+                $this->statevariables['instance'] = array();
+            }
+            list($insql, $inparams) = $DB->get_in_or_equal(array_keys($this->statevariables['global']));
+            $params = array_merge(array($USER->id),$inparams);
+            $sql = "SELECT * FROM {qtype_stack_shared_state} WHERE userid = ? AND name $insql";
+            $states = $DB->get_records_sql($sql, $params);
+            foreach ($states as $state) {
+                $this->statevariables['global'][$state->name] = $state->value;
+                if (!array_key_exists($state->name, $this->statevariables['instance'])) {
+                    $this->statevariables['instance'][$state->name] = $state->value;
+                }
+            }
+        }
+
+        if (array_key_exists('user',$this->statevariables) && count($this->statevariables['user']) > 0) {
+            if (array_key_exists('id',$this->statevariables['user'])) {
+                $this->statevariables['user']['id'] = $USER->id;
+            }
+            if (array_key_exists('username',$this->statevariables['user'])) {
+                $this->statevariables['user']['username'] = '"'.$USER->username.'"';
+            }
+            if (array_key_exists('firstname',$this->statevariables['user'])) {
+                $this->statevariables['user']['firstname'] = '"'.$USER->firstname.'"';
+            }
+            if (array_key_exists('lastname',$this->statevariables['user'])) {
+                $this->statevariables['user']['lastname'] = '"'.$USER->lastname.'"';
+            }
+            if (array_key_exists('idnumber',$this->statevariables['user'])) {
+                $this->statevariables['user']['idnumber'] = '"'.$USER->idnumber.'"';
+            }
+        }
+
+        $i = 0;
+        foreach ($this->statevariables as $context => $vars) {
+            foreach ($vars as $name => $value) {
+                $cs = new stack_cas_casstring("stack_state_load(\"$context\",\"$name\",$value)");
+                $cs->get_valid('t');
+                $cs->set_key("statevalueload$i");
+                $i++;
+                $loadcommands[] = $cs;
+            }
+        }
+
+        return $loadcommands;
+    }
+
+    /**
+     * Extracts the values of statevariables from a value returned by maxima and stores them.
+     * @param string from maxima
+     */
+    protected function store_state_variables($maximavalue) {
+        global $USER, $DB;
+        $vars = array();
+        if (strpos($maximavalue,"stackstatevar(") !== FALSE) {
+            $str = $maximavalue;
+            $strings = stack_utils::all_substring_strings($str);
+            foreach ($strings as $key => $string) {
+                $str = str_replace('"'.$string.'"', '[STR:'.$key.']', $str);
+            }
+            $vl = stack_utils::list_to_array($str,FALSE);
+            foreach ($vl as $item) {
+                $params = "[".substr($item,strlen("stackstatevar("),-1)."]";
+                $params = stack_utils::list_to_array($params,FALSE);
+                foreach ($strings as $key => $string) {
+                    foreach ($params as $ind => $param) {
+                        if ($ind == 2 && strpos($param,'[STR:'.$key.']')) {
+                            // String parameters need to stay strings in this case
+                            $params[$ind] = str_replace('[STR:'.$key.']', '"'.$string.'"', $param);
+                        } else {
+                            $params[$ind] = str_replace('[STR:'.$key.']', $string, $param);
+                        }
+                    }
+                }
+
+                $context = $params[0];
+                $name = $params[1];
+                $value = $params[2];
+                //$changed = ($params[3] == 'true');
+                if (!array_key_exists($context,$vars)) {
+                    $vars[$context] = array();
+                }
+                if (!array_key_exists($name,$vars[$context])) {
+                    $vars[$context][$name] = $value;
+                }
+            }
+        }
+
+        if (array_key_exists('global',$vars) && count($vars['global']) > 0) {
+            list($insql, $inparams) = $DB->get_in_or_equal(array_keys($vars['global']));
+            $params = array_merge(array($USER->id),$inparams);
+            $sql = "SELECT * FROM {qtype_stack_shared_state} WHERE userid = ? AND name $insql";
+            $states = $DB->get_records_sql($sql, $params);
+            foreach ($states as $state) {
+                if ($vars['global'][$state->name] !== $state->value) {
+                    $state->value = $vars['global'][$state->name];
+                    $DB->update_record('qtype_stack_shared_state', $state);
+                }
+                unset($vars['global'][$state->name]);
+            }
+            // After all the known ones have been removed we can insert the remaining new ones
+            if(count($vars['global']) > 0) {
+                $newrecords = array();
+                foreach ($vars['global'] as $name => $value) {
+                    $record = new stdClass();
+                    $record->name = $name;
+                    $record->value = $value;
+                    $record->userid = $USER->id;
+                    $newrecords[] = $record;
+                }
+                $DB->insert_records('qtype_stack_shared_state', $newrecords);
+            }
+        }
+
+        if ($this->questionusageid != -1 && array_key_exists('instance',$vars) && count($vars['instance']) > 0) {
+            $states = $DB->get_records('qtype_stack_instance_state', array('seed' => $this->seed, 'userid' => $USER->id, 'questionid' => $this->id, 'questionusageid' => $this->questionusageid));
+            foreach ($states as $state) {
+                if (array_key_exists($state->name,$vars['instance'])) {
+                    if ($vars['instance'][$state->name] !== $state->value) {
+                        $state->value = $vars['instance'][$state->name];
+                        $DB->update_record('qtype_stack_instance_state', $state);
+                    }
+                    unset($vars['instance'][$state->name]);
+                }
+            }
+            // After all the known ones have been removed we can insert the remaining new ones
+            if(count($vars['instance']) > 0) {
+                $newrecords = array();
+                foreach ($vars['instance'] as $name => $value) {
+                    $record = new stdClass();
+                    $record->name = $name;
+                    $record->value = $value;
+                    $record->userid = $USER->id;
+                    $record->seed = $this->seed;
+                    $record->questionid = $this->id;
+                    $record->questionusageid = $this->questionusageid;
+                    $newrecords[] = $record;
+                }
+                $DB->insert_records('qtype_stack_instance_state', $newrecords);
+            }
+        }
     }
 
     /**
@@ -334,6 +619,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 
     public function apply_attempt_state(question_attempt_step $step) {
         $this->seed = (int) $step->get_qt_var('_seed');
+        $this->questimate_questionusageid();
         $this->initialise_question_from_seed();
     }
 
@@ -477,6 +763,9 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $forbiddenkeys = $this->session->get_all_keys();
         $teacheranswer = $this->session->get_value_key($name);
         if (array_key_exists($name, $this->inputs)) {
+            $variabledefs = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
+            $this->inputs[$name]->set_vardefsession($variabledefs->get_session());
+
             $this->inputstates[$name] = $this->inputs[$name]->validate_student_response(
                 $response, $this->options, $teacheranswer, $forbiddenkeys);
             return $this->inputstates[$name];
@@ -751,8 +1040,25 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 
         $prtinput = $this->get_prt_input($index, $response, $acceptvalid);
 
-        $this->prtresults[$index] = $prt->evaluate_response($this->session,
+        $variabledefs = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
+        $variabledefs = $variabledefs->get_session();
+        $variabledefs->merge_session($this->session);
+        $session = $variabledefs;
+
+        if ($this->has_state_variables()) {
+            // Construct the statefull session for this
+            $this->questimate_questionusageid();
+            $loadsession = new stack_cas_session($this->load_state_variables(),$this->options,$this->seed);
+            $loadsession->merge_session($session);
+            $session = $loadsession;
+        }
+
+        $this->prtresults[$index] = $prt->evaluate_response($session,
                 $this->options, $prtinput, $this->seed);
+
+        if ($this->has_state_variables()) {
+            $this->store_state_variables($this->prtresults[$index]->get_cas_context()->get_value_key('stackstateexport'));
+        }
 
         return $this->prtresults[$index];
     }
@@ -786,7 +1092,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         foreach ($this->inputstates as $name => $inputstate) {
             $this->inputstates[$name] = new stack_input_state(
                     $inputstate->status, $this->set_value_in_nested_arrays($inputstate->contents, $name),
-                    $inputstate->contentsmodified, $inputstate->contentsdisplayed, $inputstate->errors, $inputstate->note, '');
+                    $inputstate->contentsmodified, $inputstate->contentsdisplayed, $inputstate->errors, $inputstate->note);
         }
 
         // Set the cached prt results as if the feedback for each PRT was
@@ -802,6 +1108,23 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      */
     public function has_random_variants() {
         return preg_match('~\brand~', $this->questionvariables);
+    }
+
+    /**
+     * @return bool whether this question uses state variables
+     */
+    public function has_state_variables() {
+        if ($this->statevariables === null) {
+            $this->statevariables = array();
+            $this->extract_state_variable_references($this->variabledefinitions);
+            $this->extract_state_variable_references($this->questionvariables);
+            if (!$this->prts) {
+                foreach ($this->prts as $prt) {
+                    $this->extract_state_variable_references($prt->feedbackvariables);
+                }
+            }
+        }
+        return count($this->statevariables) != 0;
     }
 
     public function get_num_variants() {
@@ -952,5 +1275,29 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      */
     public function undeploy_variant($seed) {
         $this->qtype->undeploy_variant($this->id, $seed);
+    }
+
+    /**
+     * Tries to find out the usageid for use in state storage. Really dumb system...
+     * Probably instance state should be stored to the question_attempt_step_data but how can we access that.
+     * We'll once the state question become interesting enough maybe someone cleans this mess.
+     */
+    private function questimate_questionusageid() {
+        global $DB, $USER;
+        if ($this->questionusageid != -1) {
+            return;
+        }
+
+        $sql = "SELECT DISTINCT qu.id as usageid,qa.timemodified".
+        " FROM {question_attempts} qa".
+        " JOIN {question_usages} qu ON qa.questionusageid = qu.id".
+        " JOIN {question_attempt_steps} qas ON qa.id = qas.questionattemptid".
+        " WHERE qa.variant = ? AND qas.userid = ? AND qa.questionid = ?".
+        " ORDER BY qa.timemodified DESC LIMIT 1";
+        $params = array($this->seed,$USER->id,$this->id);
+        $results = $DB->get_records_sql($sql,$params);
+        foreach ($results as $result) {
+            $this->questionusageid = (int) $result->usageid;
+        }
     }
 }

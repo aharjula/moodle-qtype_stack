@@ -399,19 +399,11 @@ class qtype_stack_edit_form extends question_edit_form {
 
         // Prepare answer test types.
         $answertests = stack_ans_test_controller::get_available_ans_tests();
-        // Algebraic Equivalence should be the default test, and first on the list.
-        // This does not come first in the alphabet of all languages.
-        $default     = 'AlgEquiv';
-        $default_str = stack_string($answertests[$default]);
-        unset($answertests[$default]);
-
         $this->answertestchoices = array();
         foreach ($answertests as $test => $string) {
             $this->answertestchoices[$test] = stack_string($string);
         }
         stack_utils::sort_array($this->answertestchoices);
-        $this->answertestchoices = array_merge(array($default => $default_str), 
-            $this->answertestchoices);
 
         // Prepare score mode choices.
         $this->scoremodechoices = array(
@@ -434,6 +426,11 @@ class qtype_stack_edit_form extends question_edit_form {
                 stack_string('questionvariables'), array('rows' => 5, 'cols' => 80));
         $mform->insertElementBefore($qvars, 'questiontext');
         $mform->addHelpButton('questionvariables', 'questionvariables', 'qtype_stack');
+
+        $vardefs = $mform->createElement('textarea', 'variabledefinitions',
+                stack_string('variabledefinitions'), array('rows' => 5, 'cols' => 80));
+        $mform->insertElementBefore($vardefs, 'questionvariables');
+        $mform->addHelpButton('variabledefinitions', 'variabledefinitions', 'qtype_stack');
 
         $seed = $mform->createElement('text', 'variantsselectionseed',
                 stack_string('variantsselectionseed'), array('size' => 50));
@@ -775,6 +772,7 @@ class qtype_stack_edit_form extends question_edit_form {
         }
         $opt = $question->options;
 
+        $question->variabledefinitions   = $opt->variabledefinitions;
         $question->questionvariables     = $opt->questionvariables;
         $question->variantsselectionseed = $opt->variantsselectionseed;
         $question->questionnote          = $opt->questionnote;
@@ -950,6 +948,7 @@ class qtype_stack_edit_form extends question_edit_form {
 
         // 1) Validate all the fixed question fields.
         // Question variables.
+        $errors = $this->validate_cas_keyval($errors, $fromform['variabledefinitions'], 'variabledefinitions');
         $errors = $this->validate_cas_keyval($errors, $fromform['questionvariables'], 'questionvariables');
 
         // Question text.
@@ -1326,6 +1325,14 @@ class qtype_stack_edit_form extends question_edit_form {
      * @return array updated $errors array.
      */
     protected function validate_question_cas_code($errors, $fromform, $fixingdollars) {
+
+        $keyval = new stack_cas_keyval($fromform['variabledefinitions'], $this->options, $this->seed, 't');
+        $keyval->instantiate();
+        $session = $keyval->get_session();
+        if ($session->get_errors()) {
+            $errors['questionvariables'][] = $session->get_errors();
+            return $errors;
+        }
 
         $keyval = new stack_cas_keyval($fromform['questionvariables'], $this->options, $this->seed, 't');
         $keyval->instantiate();
