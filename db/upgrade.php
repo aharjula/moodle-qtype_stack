@@ -630,6 +630,67 @@ function xmldb_qtype_stack_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2013091900, 'qtype', 'stack');
     }
 
+    if ($oldversion < 2014010300) {
+
+        // Define field statevariables to be added to qtype_stack_options
+        $table = new xmldb_table('qtype_stack_options');
+        $field = new xmldb_field('variabledefinitions', XMLDB_TYPE_TEXT, 'small', null, null, null, null,'questionvariables');
+
+        // Conditionally launch add field firstnodename
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define tables to store the state
+        $table = new xmldb_table('qtype_stack_shared_state');
+
+        // Adding fields to table qtype_stack_shared_state.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('name', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('value', XMLDB_TYPE_TEXT, 'medium', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null);
+
+        // Adding keys to table qtype_stack_shared_state.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+
+        // Adding indexes to table qtype_stack_shared_state.
+        $table->add_index('userid-name', XMLDB_INDEX_UNIQUE, array('userid','name'));
+
+        // Conditionally launch create table for qtype_stack_shared_state.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('qtype_stack_instance_state');
+
+        // Adding fields to table qtype_stack_instance_state.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('name', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('value', XMLDB_TYPE_TEXT, 'medium', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null);
+        $table->add_field('questionid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null);
+        $table->add_field('questionusageid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null);
+        $table->add_field('seed', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null);
+
+        // Adding keys to table qtype_stack_instance_state.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+        $table->add_key('questionid', XMLDB_KEY_FOREIGN, array('questionid'), 'question', array('id'));
+        $table->add_key('questionusageid', XMLDB_KEY_FOREIGN, array('questionusageid'), 'question_usage', array('id'));
+
+        // Adding indexes to table qtype_stack_instance_state.
+        $table->add_index('userid-questionid-seed-usageid-name', XMLDB_INDEX_UNIQUE, array('userid','questionid','seed','usageid','name'));
+
+        // Conditionally launch create table for qtype_stack_instance_state.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Qtype stack savepoint reached.
+        upgrade_plugin_savepoint(true, 2014010300, 'qtype', 'stack');
+    }
+
     if ($oldversion < 2014040501) {
 
         // Define field matrixparens to be added to qtype_stack_options.
