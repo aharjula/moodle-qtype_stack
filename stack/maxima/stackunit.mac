@@ -1,0 +1,55 @@
+/*  Author Matti Harjula
+    Aalto University
+    Copyright (C) 2015 Matti Harjula
+
+    This program is free software: you can redistribute it or modify
+    it under the terms of the GNU General Public License version two.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>. */
+
+
+/****************************************************************/
+/*  Simplified tools for handling SI-units                      */
+/*                                                              */
+/*  Matti Harjula <matti.harjula@aalto.fi>                      */
+/*  V0.3 August 2015                                            */
+/*                                                              */
+/****************************************************************/
+
+stack_unit_si_prefix_code:[y,z,a,f,p,n,u,m,c,d,da,h,k,M,G,T,P,E,Z,Y];
+stack_unit_si_prefix_multiplier:[10^-24,10^-21,10^-18,10^-15,10^-12,10^-9,10^-6,10^-3,10^-2,10^-1,10,10^2,10^3,10^6,10^9,10^12,10^15,10^18,10^21,10^24];
+stack_unit_si_prefix_tex:["y","z","a","f","p","n","\\mu","m","c","d","da","h","k","M","G","T","P","E","Z","Y"];
+stack_unit_si_unit_code:[m,g,s,A,K,mol,cd,Hz,N,Pa,J,W,C,V,F,S,Wb,T,H,l];
+stack_unit_si_unit_conversions:[m,kg/1000,s,A,K,mol,cd,1/s,kg*m/(s^2),kg/(m*s^2),kg*m^2/(s^2),kg*m^2/(s^3),s*A,kg*m^2/(s^3*A),A^2*s^4/(kg*m^2),s^3*A^2/(kg*m^2),kg*m^2/(s^2*A),kg/(s^2*A),kg*m^2/(s^2*A^2),m^3/1000];
+stack_unit_si_unit_tex:["m","g","s","A","K","mol","cd","Hz","N","Pa","J","W","C","V","F","S","Wb","T","H","l"];
+
+/* Declare SI-units as constants and set \texput rules for them, the mode parameter does nothing */
+/* except skips the syntax validation error... */
+stack_unit_si_declare(mode) := block([pi,ui],
+ for ui:1 thru length(stack_unit_si_unit_code) do (
+  for pi:1 thru length(stack_unit_si_prefix_code) do (
+   texput(concat(stack_unit_si_prefix_code[pi],stack_unit_si_unit_code[ui]),sconcat("\\textrm{",stack_unit_si_prefix_tex[pi],stack_unit_si_unit_tex[ui],"}")),
+   apply('declare,[concat(stack_unit_si_prefix_code[pi],stack_unit_si_unit_code[ui]),constant])
+  ),
+  apply('texput,[stack_unit_si_unit_code[ui],sconcat("\\textrm{",stack_unit_si_unit_tex[ui],"}")]),
+  apply('declare,[stack_unit_si_unit_code[ui],constant])
+ )
+);
+
+/* Converts the whole expression to SI-base units */
+stack_unit_si_to_si_base(expression) := block([ui,pi,work],
+ work:expression,
+ for ui:1 thru length(stack_unit_si_unit_code) do (
+  for pi:1 thru length(stack_unit_si_prefix_code) do (
+   work: subst(stack_unit_si_prefix_multiplier[pi]*stack_unit_si_unit_code[ui],concat(stack_unit_si_prefix_code[pi],stack_unit_si_unit_code[ui]),work)
+  ),
+  work: subst(stack_unit_si_unit_conversions[ui],stack_unit_si_unit_code[ui],work)
+ ),
+ return(work)
+);

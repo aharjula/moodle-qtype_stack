@@ -129,6 +129,8 @@ load("assessment.mac"); /* Currently part of the STACK distribution */
 
 load("stackstate.mac"); /* Functions for state variable control */
 
+load("stackunit.mac"); /* Simplistic prefix handling for SI-units */
+
 load("stacktex.lisp"); /* Loads LaTeX changes and preferences */
 texput(QMCHAR, "\\color{red}{?}");
 
@@ -2354,5 +2356,5 @@ assess(ex1,ex2):=block([ret],
 load(linearalgebra);
 
 /* Stack expects some output */
-stackmaximaversion:2015080300$
-print("[ STACK-Maxima started, library version 2015080300 ]")$
+stackmaximaversion:2015080500$
+print("[ STACK-Maxima started, library version 2015080500 ]")$
