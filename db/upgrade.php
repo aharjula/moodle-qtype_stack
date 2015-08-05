@@ -680,7 +680,7 @@ function xmldb_qtype_stack_upgrade($oldversion) {
         $table->add_key('questionusageid', XMLDB_KEY_FOREIGN, array('questionusageid'), 'question_usage', array('id'));
 
         // Adding indexes to table qtype_stack_instance_state.
-        $table->add_index('userid-questionid-seed-usageid-name', XMLDB_INDEX_UNIQUE, array('userid','questionid','seed','usageid','name'));
+        $table->add_index('userid-questionid-seed-usageid-name', XMLDB_INDEX_UNIQUE, array('userid','questionid','seed','questionusageid','name'));
 
         // Conditionally launch create table for qtype_stack_instance_state.
         if (!$dbman->table_exists($table)) {

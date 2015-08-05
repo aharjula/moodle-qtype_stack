@@ -214,10 +214,10 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="questionid"/>
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" PREVIOUS="primary" NEXT="questionid"/>
         <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id" PREVIOUS="userid" NEXT="questionusageid"/>
-        <KEY NAME="questionusageid" TYPE="foreign" FIELDS="" REFTABLE="question_usages" REFFIELDS="id" PREVIOUS="questionid"/>
+        <KEY NAME="questionusageid" TYPE="foreign" FIELDS="questionusageid" REFTABLE="question_usages" REFFIELDS="id" PREVIOUS="questionid"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="userid-questionid-seed-usageid-name" UNIQUE="true" FIELDS="userid, questionid, seed, usageid, name"/>
+        <INDEX NAME="userid-questionid-seed-usageid-name" UNIQUE="true" FIELDS="userid, questionid, seed, questionusageid, name"/>
       </INDEXES>
     </TABLE>
   </TABLES>
