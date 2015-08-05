@@ -8,13 +8,18 @@ For maximum flexibility, blocks can be nested and conditionally evaluated.
 A body of CAStext is then repeatedly processed until all blocks have been interpreted into CAStext.
 This is a core part of CAStext and so applied to all appropriate parts of the question.
 
-Note:  The parameters to blocks in the question body may **NOT** depend on the student's answers. This means that 
-you cannot reveal an input block based on student input, well not just by using an [[if/]]-block. But you may 
+Note:  The parameters to blocks in the question body may **NOT** depend on the student's answers. This means that
+you cannot reveal an input block based on student input, well not just by using an [[if/]]-block. But you may
 still adapt PRT-feedback as much as you want.
+
+Updated note: The parameters have no problems with state-variables and you can construct code
+in the PRT-feedback-variables -field that changes those state-variables so that you may reveal
+input blocks...
+
 
 ## General Syntax ##
 
-To avoid issues with the rich text editors used in Moodle we use a simple syntax not too 
+To avoid issues with the rich text editors used in Moodle we use a simple syntax not too
 different from the syntax used in input and output components:
 
     [[ block_type param1="value1" param2='value2' ... paramN="valueN" ]]
@@ -38,7 +43,7 @@ For example,
     [[/ if]]
 
 There is no else or else-if functionality as they would make the syntax rather difficult to evaluate.
-    
+
 ## Foreach loop ##
 
 Foreach blocks iterate over lists or sets and repeat their content redefining variables for each repetition.
@@ -50,7 +55,7 @@ Should one of the lists or set be shorter/smaller the iteration will stop when t
 
     [[ foreach x="[1,2,3]" y="makelist(x^2,x,4)" ]] ({#x#},{#y#}) [[/ foreach ]]
 
-Because the foreach block needs to evaluate the lists/sets before it can do the iteration, using foreach blocks 
+Because the foreach block needs to evaluate the lists/sets before it can do the iteration, using foreach blocks
 will require one additional cas evaluation for each level of foreach blocks.
 
 ## Define block ##
@@ -60,7 +65,7 @@ is to change the value of a cas variable in the middle of castex. For example:
 
     [[ define x='1' /]] {#x#}, [[ define x='x+1' /]] {#x#}, [[ define x='x+1' /]] {#x#}
 
-should print "1, 2, 3". You may define multiple variables in the same block and the order of define 
+should print "1, 2, 3". You may define multiple variables in the same block and the order of define
 operations is from left to right so "[[ define a='1' b='a+1' c='a+b' /]] {#a#}, {#b#}, {#c#}" should
 generate the same output.
 
@@ -73,7 +78,7 @@ would produce an image of an equation:
 
     [[ external type="latex" template="basic" ]]\[\frac12\sin{{@f@}}\][[/ external ]]
 
-While working with source-code for various tools you'll probably want to turn of the rich text editor and use 
+While working with source-code for various tools you'll probably want to turn of the rich text editor and use
 plain text instead and make sure that you do not load and save the document in the rich text editor as that will
 reformat it and add various line-breaks and paragraphs in all the wrong places.
 

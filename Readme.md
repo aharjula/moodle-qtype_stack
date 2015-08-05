@@ -1,4 +1,7 @@
-# STACK 3.4 ALPHA
+# STACK 3.4s ALPHA - the stateful variant
+
+This branch contains highly experimental question model expansion that includes
+state-variables. Check the doc/en/Authoring/State.md to start working with it.
 
 [STACK](https://github.com/maths/moodle-qtype_stack/blob/master/doc/en/About/index.md)
 is an open-source system for computer-aided assessment in Mathematics and related
@@ -10,7 +13,7 @@ STACK was created by Chris Sangwin of Loughborough University, and includes the 
 
 ## Current state of development
 
-Stack 3.4 contains some major changes from the previous verions, notably the question blocks from Aalto Finland.
+Stack 3.4s contains some major changes from the previous versions, notably the question blocks from Aalto Finland.
 STACK continues to be used at Loughborough University, the Open University and the University of Birmingham.
 
 Please continue to report any bugs you find at https://github.com/maths/moodle-qtype_stack/issues.
