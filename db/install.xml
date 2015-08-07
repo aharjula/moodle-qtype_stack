@@ -185,7 +185,7 @@
         <INDEX NAME="questionid-seed" UNIQUE="true" FIELDS="questionid, seed"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="qtype_stack_shared_state" COMMENT="One row for each state variable shared between questions." PREVIOUS="qtype_stack_deployed_seeds" NEXT="qtype_stack_instance_state">
+    <TABLE NAME="qtype_stack_shared_state" COMMENT="One row for each state variable shared between questions." PREVIOUS="qtype_stack_deployed_seeds">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="name"/>
         <FIELD NAME="name" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="The name of the state variable." PREVIOUS="id"  NEXT="value"/>
@@ -198,26 +198,6 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="userid-name" UNIQUE="true" FIELDS="userid, name"/>
-      </INDEXES>
-    </TABLE>
-    <TABLE NAME="qtype_stack_instance_state" COMMENT="One row for each state variable stored for a question instance." PREVIOUS="qtype_stack_shared_state">
-      <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="name"/>
-        <FIELD NAME="name" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="The name of the state variable." PREVIOUS="id"  NEXT="value"/>
-        <FIELD NAME="value" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Maxima code value of the variable." PREVIOUS="name" NEXT="userid"/>
-        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The user to whom these shared state variables are tied to." PREVIOUS="value" NEXT="questionid"/>
-        <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The question to which these shared state variables are tied to." PREVIOUS="userid" NEXT="questionusageid"/>
-        <FIELD NAME="questionusageid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The usage of that question that this state is tied to." PREVIOUS="questionid" NEXT="seed"/>
-        <FIELD NAME="seed" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The seed of the question instance to which these shared state variables are tied to." PREVIOUS="questionusageid"/>
-      </FIELDS>
-      <KEYS>
-        <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="questionid"/>
-        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" PREVIOUS="primary" NEXT="questionid"/>
-        <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id" PREVIOUS="userid" NEXT="questionusageid"/>
-        <KEY NAME="questionusageid" TYPE="foreign" FIELDS="questionusageid" REFTABLE="question_usages" REFFIELDS="id" PREVIOUS="questionid"/>
-      </KEYS>
-      <INDEXES>
-        <INDEX NAME="userid-questionid-seed-usageid-name" UNIQUE="true" FIELDS="userid, questionid, seed, questionusageid, name"/>
       </INDEXES>
     </TABLE>
   </TABLES>

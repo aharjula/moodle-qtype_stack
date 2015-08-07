@@ -48,9 +48,9 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     public $variabledefinitions;
 
     /**
-     * @var string STACK specific: usage of this question for state storage identification.
+     * @var question_attempt_step STACK specific: state storage related
      */
-    public $questionusageid = -1;
+    public $step = null;
 
     /**
      * @var string STACK specific: variables, as authored by the teacher.
@@ -228,9 +228,6 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
-        if (is_int($qa->get_usage_id())) {
-            $this->questionusageid = (int) $qa->get_usage_id();
-        }
         if (empty($this->inputs)) {
             return question_engine::make_behaviour('informationitem', $qa, $preferredbehaviour);
         }
@@ -273,14 +270,14 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         }
         $step->set_qt_var('_seed', $this->seed);
 
-        $this->questimate_questionusageid();
-        $this->initialise_question_from_seed();
+        $this->step = $step;
+        $this->initialise_question_from_seed(true);
     }
 
     /**
      * Once we know the random seed, we can initialise all the other parts of the question.
      */
-    public function initialise_question_from_seed() {
+    public function initialise_question_from_seed($init=false) {
         // Build up the question session out of all the bits that need to go into it.
         $session = null;
         // 0. question variable definitions.
@@ -344,7 +341,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 
         // If state variables are present store state changes
         if ($this->has_state_variables()) {
-            $this->store_state_variables($session->get_value_key('stackstateexport'));
+            $this->store_state_variables($session->get_value_key('stackstateexport'),$init);
         }
 
         // Finally, store only those values really needed for later.
@@ -446,14 +443,19 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         // The instance variables are the most importatnt things and need to be loaded first
         // And as they may exist without being visible in the code we need to check for them if 'globals' exist
         if ((array_key_exists('instance',$this->statevariables) && count($this->statevariables['instance']) > 0) || (array_key_exists('global',$this->statevariables) && count($this->statevariables['global']) > 0)) {
-            // We are going to add these to the instance context anyway...
-            if (!array_key_exists('instance',$this->statevariables)) {
-                $this->statevariables['instance'] = array();
+            $vars = $this->step->get_qt_data();
+            foreach ($vars as $name => $value) {
+                if(strpos($name,"_isv_")===0){
+                    $this->statevariables['instance'][substr($name,5)] = $value;
+                }
             }
-
-            $states = $DB->get_records('qtype_stack_instance_state', array('seed' => $this->seed, 'userid' => $USER->id, 'questionid' => $this->id, 'questionusageid' => $this->questionusageid));
-            foreach ($states as $state) {
-                $this->statevariables['instance'][$state->name] = $state->value;
+            if (is_a($this->step,'question_attempt_step_read_only')) {
+                $data = $DB->get_records('question_attempt_step_data', array('attemptstepid' => $this->step->get_id()));
+                foreach ($data as $row) {
+                    if(strpos($row->name,"_isv_")===0){
+                        $this->statevariables['instance'][substr($row->name,5)] = $row->value;
+                    }
+                }
             }
         }
 
@@ -509,10 +511,12 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     /**
      * Extracts the values of statevariables from a value returned by maxima and stores them.
      * @param string from maxima
+     * @param boolean init-variables, causes storage of variables that have not changed
      */
-    protected function store_state_variables($maximavalue) {
+    protected function store_state_variables($maximavalue,$init=false) {
         global $USER, $DB;
         $vars = array();
+        $changes = array();
         if (strpos($maximavalue,"stackstatevar(") !== FALSE) {
             $str = $maximavalue;
             $strings = stack_utils::all_substring_strings($str);
@@ -537,15 +541,16 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                 $context = $params[0];
                 $name = $params[1];
                 $value = $params[2];
-                //$changed = ($params[3] == 'true');
+                $changed = ($params[3] == 'true');
                 if (!array_key_exists($context,$vars)) {
                     $vars[$context] = array();
+                    $changes[$context] = array();
                 }
-                if (!array_key_exists($name,$vars[$context])) {
-                    $vars[$context][$name] = $value;
-                }
+                $vars[$context][$name] = $value;
+                $changes[$context][$name] = $changed;
             }
         }
+
 
         if (array_key_exists('global',$vars) && count($vars['global']) > 0) {
             list($insql, $inparams) = $DB->get_in_or_equal(array_keys($vars['global']));
@@ -573,31 +578,43 @@ class qtype_stack_question extends question_graded_automatically_with_countback
             }
         }
 
-        if ($this->questionusageid != -1 && array_key_exists('instance',$vars) && count($vars['instance']) > 0) {
-            $states = $DB->get_records('qtype_stack_instance_state', array('seed' => $this->seed, 'userid' => $USER->id, 'questionid' => $this->id, 'questionusageid' => $this->questionusageid));
-            foreach ($states as $state) {
-                if (array_key_exists($state->name,$vars['instance'])) {
-                    if ($vars['instance'][$state->name] !== $state->value) {
-                        $state->value = $vars['instance'][$state->name];
-                        $DB->update_record('qtype_stack_instance_state', $state);
-                    }
-                    unset($vars['instance'][$state->name]);
-                }
+        if (array_key_exists('instance',$vars) && count($vars['instance']) > 0) {
+            $has_changes = $init;
+            foreach ($vars['instance'] as $key => $val) {
+                $has_changes = $changes['instance'][$key] || $has_changes;
             }
-            // After all the known ones have been removed we can insert the remaining new ones
-            if(count($vars['instance']) > 0) {
-                $newrecords = array();
-                foreach ($vars['instance'] as $name => $value) {
-                    $record = new stdClass();
-                    $record->name = $name;
-                    $record->value = $value;
-                    $record->userid = $USER->id;
-                    $record->seed = $this->seed;
-                    $record->questionid = $this->id;
-                    $record->questionusageid = $this->questionusageid;
-                    $newrecords[] = $record;
+            if ($has_changes && is_a($this->step,'question_attempt_step_read_only')) {
+                /* So this is the ugly way, and will cause issues also in the load code */
+                $data = $DB->get_records('question_attempt_step_data', array('attemptstepid' => $this->step->get_id()));
+                foreach ($data as $row) {
+                    $key = substr($row->name,5);
+                    if (strpos($row->name,"_isv_")===0 && array_key_exists($key,$vars['instance'])) {
+                        if ($vars['instance'][$key] != $row->value) {
+                            $row->value = $vars['instance'][$key];
+                            $DB->update_record('question_attempt_step_data',$row);
+                        }
+                        unset($vars['instance'][$key]);
+                    }
                 }
-                $DB->insert_records('qtype_stack_instance_state', $newrecords);
+                $new_records = array();
+                foreach ($vars['instance'] as $key => $val) {
+                    if ($changes['instance'][$key]||$init) {
+                        $record = new stdClass();
+                        $record->attemptstepid = $this->step->get_id();
+                        $record->name = "_isv_$key";
+                        $record->value = $value;
+                        $new_records[] = $record;
+                    }
+                }
+                if (count($new_records) > 0) {
+                    $DB->insert_records('question_attempt_step_data', $new_records);
+                }
+            } else if ($has_changes) {
+                foreach ($vars['instance'] as $key => $val) {
+                    if ($changes['instance'][$key]||$init) {
+                        $this->step->set_qt_var("_isv_$key",$val);
+                    }
+                }
             }
         }
     }
@@ -619,7 +636,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 
     public function apply_attempt_state(question_attempt_step $step) {
         $this->seed = (int) $step->get_qt_var('_seed');
-        $this->questimate_questionusageid();
+        $this->step = $step;
         $this->initialise_question_from_seed();
     }
 
@@ -1047,7 +1064,6 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 
         if ($this->has_state_variables()) {
             // Construct the statefull session for this
-            $this->questimate_questionusageid();
             $loadsession = new stack_cas_session($this->load_state_variables(),$this->options,$this->seed);
             $loadsession->merge_session($session);
             $session = $loadsession;
@@ -1275,29 +1291,5 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      */
     public function undeploy_variant($seed) {
         $this->qtype->undeploy_variant($this->id, $seed);
-    }
-
-    /**
-     * Tries to find out the usageid for use in state storage. Really dumb system...
-     * Probably instance state should be stored to the question_attempt_step_data but how can we access that.
-     * We'll once the state question become interesting enough maybe someone cleans this mess.
-     */
-    private function questimate_questionusageid() {
-        global $DB, $USER;
-        if ($this->questionusageid != -1) {
-            return;
-        }
-
-        $sql = "SELECT DISTINCT qu.id as usageid,qa.timemodified".
-        " FROM {question_attempts} qa".
-        " JOIN {question_usages} qu ON qa.questionusageid = qu.id".
-        " JOIN {question_attempt_steps} qas ON qa.id = qas.questionattemptid".
-        " WHERE qa.variant = ? AND qas.userid = ? AND qa.questionid = ?".
-        " ORDER BY qa.timemodified DESC LIMIT 1";
-        $params = array($this->seed,$USER->id,$this->id);
-        $results = $DB->get_records_sql($sql,$params);
-        foreach ($results as $result) {
-            $this->questionusageid = (int) $result->usageid;
-        }
     }
 }
