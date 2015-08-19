@@ -18,7 +18,7 @@
 /*  State variable related functions and definitions for STACK  */
 /*                                                              */
 /*  Matti Harjula <matti.harjula@aalto.fi>                      */
-/*  V0.46 July 2015                                             */
+/*  V0.48 August 2015                                           */
 /*                                                              */
 /****************************************************************/
 
@@ -95,8 +95,8 @@ stack_state_increment_once(name) := block([sv,v],
  for v in stackstatevars do if (is(v@name=name) and is(v@ctx="global")) then sv:v,
  if is(sv=false) then (sv:stack_state_load("global",name,0),sv@changed:true),
  /* check the lock */
- v:stack_state_get("instance",sconcat("[inc-lock]:",name),0),
- if is(v=0) then (sv@value:sv@value+1,sv@changed:true,stack_state_set("instance",sconcat("[inc-lock]:",name),1))
+ v:stack_state_get("instance",sconcat("[il]:",name),0),
+ if is(v=0) then (sv@value:sv@value+1,sv@changed:true,stack_state_set("instance",sconcat("[il]:",name),1))
 );
 
 stack_state_decrement_once(name) := block([sv,v],
@@ -105,8 +105,8 @@ stack_state_decrement_once(name) := block([sv,v],
  for v in stackstatevars do if (is(v@name=name) and is(v@ctx="global")) then sv:v,
  if is(sv=false) then (sv:stack_state_load("global",name,0),sv@changed:true),
  /* check the lock */
- v:stack_state_get("instance",sconcat("[dec-lock]:",name),0),
- if is(v=0) then (sv@value:sv@value-1,sv@changed:true,stack_state_set("instance",sconcat("[dec-lock]:",name),1))
+ v:stack_state_get("instance",sconcat("[dl]:",name),0),
+ if is(v=0) then (sv@value:sv@value-1,sv@changed:true,stack_state_set("instance",sconcat("[dl]:",name),1))
 );
 
 stack_state_full_state(fakevar) :=block(
