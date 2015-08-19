@@ -35,6 +35,7 @@ variables inside the CAS. The loading process depends on the types of state-vari
     the question for this user in this quiz (or other context). If the question uses even one
     of these all of these will be loaded (i.e. you can name these in a dynamic way and there is
     no need for static references).
+4. Other scopes do exist but they are less obvious.
 
 
 ## Use and modification of state-variables
@@ -95,3 +96,32 @@ A few recommendations:
  4. Note the grading issues of non-visited 'scenes', a way to handle this is to have
     an input-field in the first 'scene' and a PRT that handles grading that will only
     activate in exit-scenes. Other PRTs would not give grades in this system.
+
+
+## Limitations on variable names
+
+Due to the way the variables are stored the length of the variable name is limited in
+the following ways:
+
+ 1. A global-scope variables name should not be over 21-chars, (64 in special cases)
+ 2. An instance-scope variables name should not be over 21-chars
+ 3. If you intend to use the increment/decrement functions with global or instance
+    scope variables they cannot start with the strings "[il]:" or "[dl]:". If you do
+    not use those functions you have five extra chars to use for the var-name
+ 4. Otherwise you are free to use everything in ASCII-space that you can push to
+    a Maxima string.
+
+To keep your life simple just limit the variable names to 18-chars as that limit applies
+to various other STACK-fields.
+
+
+# List of named system-information
+
+Through the stack_state_get()-function one can also read (never write) things from
+the following scopes:
+
+ 'user'-scope
+    'id' = the database id-number of the user as an integer, could be useful as a seed
+    'firstanme', 'lastname' = strings
+    'idnumber' = a string with the student-id fields value
+    'username' = a string that could be used as a seed or passed to external tools
