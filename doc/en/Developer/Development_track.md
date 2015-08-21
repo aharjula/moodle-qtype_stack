@@ -1,6 +1,6 @@
 # Development track for STACK 4.0 (alpha)
 
-This page describes the major tasks we still need to complete in order to be able to release the next version: STACK 4.0. Plans looking further into the future are described  on [Future plans](Future_plans.md). 
+This page describes the major tasks we still need to complete in order to be able to release the next version: STACK 4.0. Plans looking further into the future are described  on [Future plans](Future_plans.md).
 The past development history is documented on [Development history](Development_history.md).
 
 How to report bugs and make suggestions is described on the [community](../About/Community.md) page.
@@ -12,10 +12,12 @@ This version of STACK contains a number of major new features.
 2. [Question blocks](../Authoring/Question_blocks.md).
 2. [State variables](../Authoring/State.md).
 
-## STACK State 
+## STACK State
 
 * Introduce a variable so the maxima code "knows the attempt number". This should be through the state variables.  How to count "attempts" of different prts and inputs needs to be decided.  [Note to self: check how this changes reporting.]
 * Unit tests of questions which make use of state.
+* State storage does it need a new behaviour, now we write to read only things...
+* What do we want to expose through the system-state? Number of attempts, previous inputs?
 
 ## Scientific units
 
@@ -29,9 +31,15 @@ Currently there are problems with the NumSigfigs tests and the other numerical t
 
 This is due to the fact that the NumSigFigs answer test code uses maxima's `floor()` function, which gives `floor(0.1667*10^4)` as `1666` not `1667` as expected.
 
-To avoid this problem we need an "ephemeral form" for representing numbers at 
-a syntactic level.   This test probably needs to operate at the PHP level on 
+To avoid this problem we need an "ephemeral form" for representing numbers at
+a syntactic level.   This test probably needs to operate at the PHP level on
 strings, rather then through Maxima.  
+
+## Other features ##
+
+ * Button as an input type, activates a PRT and forgets itself after that. i.e. that input value is not stored or remembered
+ * Maxima to other languages converter with JSXGraph/JessieCode as the prototype, Matlab and Mathematica as the next step. stack_jessie(%e^(-5*x)*%pi) => "EULER^(-5*x)*PI"
+ * Hidden input-field, something for use when integrating applets and stuff. Basically HTML-hidden-field that has an id or unique class that can be given through some means through the castext to scripts to use. Probably {#stack_state_get("input","fieldX__identifier","Null")#}
 
 ## STACK custom reports
 
@@ -40,8 +48,3 @@ Basic reports now work.
 * *done* Add titles and explanations to the page, and document with examples.
 * Really ensure "attempts" list those with meaningful histories.  I.e. if possible filter out navigation to and from the page etc.
 * Add better maxima support functions for off-line analysis.
-
-
-
-
- 
