@@ -1,7 +1,5 @@
 # Units
 
-_Planned for a future STACK release._
-
 It is quite common in science subjects to need to accept an answer which has _units_,
 for example using \(m/s\).  Fortunately, Maxima already has a units package.
 
@@ -15,57 +13,37 @@ Note that in Maxima there are two packages which enable a user to manipulate phy
 The differences between these are discussed in Maxima's
 [online manual](http://maxima.sourceforge.net/docs/manual/en/maxima_76.html#SEC321).
 
-**WE NEED TO USE THE UNIT PACKAGE** not the units package for STACK since it is much more comprehensive.
+We don't use these packages.
 
 ### Unit package ###
 
-There are no mm units.
+There is a lighter weight units package in the file stack/maxima/stackunit.mac, that
+provides a way for defining the presentation of most SI prefix and unit combinations
+as well a way for returning any expression using those units to the base SI units.
+Comparing two expressions that have been returned to the same base units is obviously simpler.
+
+Support includes liters and SI [units](https://en.wikipedia.org/wiki/International_System_of_Units#Base_units) and [derived units](https://en.wikipedia.org/wiki/International_System_of_Units#Derived_units) in this list [m,g,s,A,ohm,K,mol,cd,Hz,N,Pa,J,W,C,V,F,S,Wb,T,H,Bq,Gy,Sv,lm,lx]
+
+
+We do not note radians, steradians, or degrees of Celcius. This is due to practical reasons.
 
 ## Examples  ##
 
 ### Example 1  ###
 
-Let us assume that the correct answer is `12.1*m/s^2`.
+Lets assume that we are asking for a length of something large and the student could answer
+with anything from giga-meters to femto-meters. Obviously we do not want to test for all of
+those cases with all of those possible units.
 
-1. This value is inserted to STACK exactly as it is above. Note the multiplication sign between
-   the number and units. Thus only one answer field is needed. We think this is the best solution (see below).
-2. The teacher may want to use their own units. For example, the unit package does not
-   include mm (millimetre), it is defined there as a word "millimetre". First of all, in my codes I
-   substitute all mms by m/1000. If we use two answer fields, then we need to move this "/1000" to the number part. Now this happens automatically.
-3. Then STACK converts the student answer such that it include only meters and seconds.
-   Unit package includes the suitable "convert" function. This function also handles the number
-   coefficients automatically (e.g. 1*km = 1000*m etc.).
-4. STACK picks the number from this converted code (the command "coeff").
-5. Finally STACK compares this number to the respective model answer. In this comparison it
-   uses `NumAbsolute` or something like that.
-
-So, the following code is needed in the [feedback variables](KeyVals.md#Feedback_variables) (`ans1` is the student's answer).
-
-    temp1 = subst(m/1000,mm,ans1)
-    temp2 = convert(temp1,[m,s])
-    temp3 = coeff(coeff(temp2,m),1/s^2)
-
-The last command strips out the numbers so we can use a floating point comparison test to gauge the correct level of accuracy.
-
-Here, the respective model answer is 12.1 without any unit.
-
-## Answer tests  ##
-
-Once we are confident with how this all works, we will create a _units_ [answer tests](Answer_tests.md).
-This will provide feedback such as
-
-* correct units, wrong number
-* wrong units, but number is equivalent on conversion
-* wrong class of units, i.e. Imperial not metric is a different problem from using \(m\) vs \(km\).
-* dimensional problems
-
-This answer test will then be similar to Algebraic Equivalence, but will automatically provide built in feedback.
-
-## Current problems/issues  ##
-
-1. 30/7/10 Jarno Ruokokoski reports  `load(unit);` this is very slow (10 seconds) to load.
-Adding "load(unit)" to Maxima automatically under these circumstances would not work...
-2. If we automatically `load` a library every time, then variable names such as \(m\) will
-   acquire a meaning.  Perhaps it might be better to have a global question option "load unit(s)
-   package" which will only load units for questions which make use of them.
-   More complex for question authors, of course, and may not actually speed things up when compiled...
+ 1. Declare that you are using units in this question by putting "stack_unit_si_declare(length);"
+    into the variable-definition field. This is not entirelly necessary, but it ensures that all
+    the units are presented with a non italic font and that they are considered as constants in
+    the validation code.
+ 2. Calculate your model answer using any (SI) units you wish just make sure that the unit is
+    present in that answer e.g. "ta:rand(2345432543)*km"
+ 3. Return that answer to the base units with the command "ta:stack_unit_si_to_si_base(ta);"
+ 4. Do the same to the students answer "sans:stack_unit_si_to_si_base(ans1);"
+ 5. You can then just compare them. Or if you happen to allow floats or for some other reason
+    want to get a raw number to work with extract the "multiplier of the unit" from the answers
+    with "rawnumber:coeff(sans,m);". With raw numbers it is then possible to test all sorts of
+    accuracy and presentation issues. TODO: SigFigs-testing...
