@@ -40,7 +40,6 @@ The following features are in approximate priority order.  How to report bugs an
 * Better options for automatically generated plots.  (Aalto use of tikzpicture?)  (Draw package?)
 * Make the mark and penalty fields accept arbitrary maxima statements.
 * Check CAS/maxima literature on -inf=minf.
-* Introduce a variable so the maxima code "knows the attempt number". [Note to self: check how this changes reporting]
 * Facility to import test-cases in-bulk as CSV (or something). Likewise export.
 * Refactor answer tests.
  1. They should be like inputs. We should return an answer test object, not a controller object.
@@ -56,16 +55,7 @@ The following features are in approximate priority order.  How to report bugs an
   * MapleTA
 * Possible Maxima packages:
  * Better support for rational expressions, in particular really firm up the PartFrac and SingleFrac functions with better support.
- * Package for scientific [units](../Authoring/Units.md), and a science answer test.
  * Support for inequalities.  This includes real intervals and sets of real numbers.
  * Support for the "draw" package.
- * Add an ephemeral form for floating point numbers for better support for the numerical tests.  See below.
 * Add support for qtype_stack in Moodle's lesson module.
 
-## Ephemeral forms for numbers.
-
-Currently there are problems with the NumSigfigs tests and the other numerical tests.  
-
-This is due to the fact that the NumSigFigs answer test code uses maxima's `floor()` function, which gives `floor(0.1667*10^4)` as `1666` not `1667` as expected.
-
-To avoid this problem we need an "ephemiral form" for representing numbers at a syntactic level.   This test probably needs to operate at the PHP level on strings, rather then through Maxima.  
