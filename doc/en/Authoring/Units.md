@@ -42,8 +42,22 @@ those cases with all of those possible units.
  2. Calculate your model answer using any (SI) units you wish just make sure that the unit is
     present in that answer e.g. "ta:rand(2345432543)*km"
  3. Return that answer to the base units with the command "ta:stack_unit_si_to_si_base(ta);"
- 4. Do the same to the students answer "sans:stack_unit_si_to_si_base(ans1);"
+ 4. Do the same to the students answer "sans:stack_unit_si_to_si_base(ans1);" this happens
+    in the feedback variables or the argument to the answer test
  5. You can then just compare them. Or if you happen to allow floats or for some other reason
     want to get a raw number to work with extract the "multiplier of the unit" from the answers
     with "rawnumber:coeff(sans,m);". With raw numbers it is then possible to test all sorts of
     accuracy and presentation issues. TODO: SigFigs-testing...
+
+
+### Example 2 ###
+
+For example we might ask the student to evaluate multiple formulas returning energy i.e. Joules
+and we want to find out if the student has actually done all the unit conversions i.e. converted
+all the Watts and Amperes with seconds and so back to Joules.
+
+ 1. With normal expressions we would just use the "listofvars()"-function to get a list of variables
+    present in the expression, but units are constants. So you need to set the option
+    "listconstvars:true;" to also get them in the list.
+ 2. Simply checking the length of that list tells you plenty about the students calculations.
+ 3. Just do not return that answer to base units before checking that.

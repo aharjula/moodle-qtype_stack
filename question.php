@@ -360,6 +360,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 
     /**
      * Extracts names of state variables from a keyval string. For loading only relevant values from state-store.
+     * TODO move to keyval
      * @param string that would work for a keyval-object
      */
     protected function extract_state_variable_references($keyvalstring) {
