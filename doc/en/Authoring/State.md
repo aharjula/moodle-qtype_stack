@@ -1,9 +1,8 @@
 # State-variables
 
-STACK_3.4s-branch merges many years of experimentation and meditation to the STACK_3.4-branch.
-Primarily, it adds the state-variables and the interface for bringing data into questions as
+This is a new feature added from STACK 4.  Primarily, it adds the state-variables and the interface for bringing data into questions as
 well as exporting it from them. In addition to that it expands the question model with one
-extra field meant for code shared between the question-varibles, feedback-evaluation as well
+extra field meant for code shared between the question-variables, feedback-evaluation as well
 as the validation logic.
 
 ## Variable-definitions -field
@@ -47,7 +46,7 @@ When you want to access a state variable you will simply request for its value:
 You may do that request anywhere with two exceptions:
  1. in CAStext you may only access variable that have been accessed in key-val field
     elsewhere. (performance issues, block our ability to identify references there)
- 2. it is unwise to act on state-variables in the question-varibles -field, unless
+ 2. it is unwise to act on state-variables in the question-variables -field, unless
     you really understand the processing of that field.
 
 In addition to those exceptions there are a few recommendations:

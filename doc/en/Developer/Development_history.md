@@ -1,6 +1,7 @@
 # History of previous versions of STACK
 
-For current and future plans, see [Development track](Development_track.md) and [Future plans](Future_plans.md).
+For current and future plans, see [Development track](Development_track.md) and [Future plans](Future_plans.md) respectively.
+
 
 ## Version 3.4
 
