@@ -318,7 +318,11 @@ abstract class stack_input {
                     $teacheranswer, $this->get_parameter('allowWords', ''));
             $localoptions->set_option('simplify', false);
 
-            $session = new stack_cas_session(array_merge($this->vardefsession->get_session(),array($answer, $lvars)), $localoptions, 0);
+            if ($this->vardefsession === null) {
+            	$session = new stack_cas_session(array($answer, $lvars), $localoptions, 0);
+            } else {
+            	$session = new stack_cas_session(array_merge($this->vardefsession->get_session(), array($answer, $lvars)), $localoptions, 0);
+            }
             $session->instantiate();
 
             $session = $session->get_session();
