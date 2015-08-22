@@ -18,11 +18,14 @@ To confirm if the PHP scripts are connecting to Maxima navigate to the `STACK co
 This script checks the following. 
 
 * Check LaTeX is being converted correctly?  Check [MathJax](../Developer/Mathjax.md) or other LaTeX converter.
+* Check whether the JSXGraph plugin is available.
 * Can PHP call external applications?  No, then change PHP settings. 
 * Can PHP call Maxima? No, check the settings in the STACK plugin, and look carefully at the calls being made.  You may need to explicitly set a path to the Maxima executable if PHP can't find it automatically. Do you have permission to run this as the web server?
 * Graph plotting. Are auto-generated plots being created correctly.  There should be two different graphs.  If not, check the gnuplot settings, and directory permissions.
 
 The CAS-debug option in the STACK settings will provide a very verbose output which is indispensable at this stage.  Turn this off for production servers, as it is wasteful of storage, particularly when caching results.
+
+This script now also automatically tries to write an optimised Maxima image.
 
 ## Caching CAS output
 

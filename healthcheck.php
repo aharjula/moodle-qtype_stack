@@ -48,6 +48,7 @@ $PAGE->set_url('/question/type/stack/healthcheck.php');
 $title = stack_string('healthcheck');
 $PAGE->set_title($title);
 
+
 // Clear the cache if requested.
 if (data_submitted() && optional_param('clearcache', false, PARAM_BOOL)) {
     require_sesskey();
@@ -87,6 +88,22 @@ if ($config->mathsdisplay === 'mathjax') {
     $settingsurl = new moodle_url('/admin/filters.php');
     echo html_writer::tag('p', stack_string('healthcheckfilters',
             array('filter' => stack_maths::configured_output_name(), 'url' => $settingsurl->out())));
+}
+
+// JSXGraph: check if JSXGraph is installed.
+echo $OUTPUT->heading(stack_string('healthcheckjsxgraph'), 3);
+$plugininfos = core_plugin_manager::instance()->get_plugins_of_type('filter');
+if (array_key_exists('jsxgraph', $plugininfos)) {
+    $states = filter_get_global_states();
+    $state = $states['jsxgraph'];
+    if ($state->active > 0) {
+        echo html_writer::tag('p', stack_string('healthcheckjsxgraphfound'));
+    } else {
+        echo html_writer::tag('p', stack_string('healthcheckjsxgraphfoundinactive'));
+        $summary[] = array(false, stack_string('healthcheckjsxgraphfoundinactive'));
+    }
+} else {
+    echo html_writer::tag('p', stack_string('healthcheckjsxgraphmissing'));
 }
 
 // Maxima config.

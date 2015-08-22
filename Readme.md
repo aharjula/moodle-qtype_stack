@@ -1,6 +1,6 @@
-# STACK 3.4s ALPHA - the stateful variant
+# STACK 4 ALPHA - the stateful variant
 
-This branch contains highly experimental question model expansion that includes
+This branch contains the experimental question model expansion that includes
 state-variables. Check the doc/en/Authoring/State.md to start working with it.
 
 [STACK](https://github.com/maths/moodle-qtype_stack/blob/master/doc/en/About/index.md)
@@ -9,11 +9,11 @@ disciplines, with emphasis on formative assessment.
 
 STACK was created by Chris Sangwin of Loughborough University, and includes the work of
 [other contributors](https://github.com/maths/moodle-qtype_stack/blob/master/doc/en/About/Credits.md).
-
+State variables, blocks and scientific units were added by Matti Harulja 
 
 ## Current state of development
 
-Stack 3.4s contains some major changes from the previous versions, notably the question blocks from Aalto Finland.
+This version contains some major changes from the previous versions, notably the question blocks from Aalto Finland.
 STACK continues to be used at Loughborough University, the Open University and the University of Birmingham.
 
 Please continue to report any bugs you find at https://github.com/maths/moodle-qtype_stack/issues.

@@ -10,13 +10,8 @@ The following features are in approximate priority order.  How to report bugs an
  1. Dropdown/Multiple choice input type.
  2. Dragmath (actually, probably use javascript from NUMBAS instead here).
  3. Sliders.
- 4. Geogebra input.
-* Reasoning by equivalence input type.
-* Inputs which enable student to input steps in the working. In particular, variable numbers of input boxes.
-* Add a "scratch working" area in which students can record their thinking etc. alongside the final answer.
 * Add support for coordinates, so students can type in (x,y).  This should be converted internally to a list.
 * It is very useful to be able to embed input elements in equations, and this was working in STACK 2.0. However is it possible with MathJax or other Moodle maths filters?
-* Modify the text area input so that each line is validated separately.
 
 ### Improve the editing form ###
 
@@ -37,7 +32,6 @@ The following features are in approximate priority order.  How to report bugs an
 * Implement "BracketError" option for inputs.  This allows the student's answer to have only those types of parentheses which occur in the teacher's answer.  Types are `(`,`[` and `{`.  So, if a teacher's answer doesn't have any `{` then a student's answer with any `{` or `}` will be invalid.
 * Enable individual questions to load Maxima libraries.
 * It would be very useful to have finer control over the validation feedback. For example, if we have a polynomial with answer boxes for the coefficients, then we should be able to echo back "Your last answer was..." with the whole polynomial, not just the numbers.
-* Better options for automatically generated plots.  (Aalto use of tikzpicture?)  (Draw package?)
 * Make the mark and penalty fields accept arbitrary maxima statements.
 * Check CAS/maxima literature on -inf=minf.
 * Facility to import test-cases in-bulk as CSV (or something). Likewise export.
@@ -58,4 +52,10 @@ The following features are in approximate priority order.  How to report bugs an
  * Support for inequalities.  This includes real intervals and sets of real numbers.
  * Support for the "draw" package.
 * Add support for qtype_stack in Moodle's lesson module.
+
+## Ideas which have been discussed in the past.
+
+The following ideas are on hold while we evaluate [JSXGraph](../Installation/JSXGraph.md)
+* GeoGebra input type.
+* Better options for automatically generated plots.  (Aalto use of tikzpicture?)  (Draw package?)
 

@@ -1,8 +1,14 @@
-# Plots and graphics in STACK questions.
+# Plots and graphics in STACK questions using GNUplot and Maxima.
+
+Note, that plots can be included in two ways.
+
+1. Using GNUPlot commands from Maxima.  These are supported on all STACK servers and are a core feature.  The plot command creates an image file which is included in the web page.
+2. Using [JSXGraph](../Installation/JSXGraph.md) which is an optional extension which is not installed on all systems.
+3. Using Google charts or other HTML code.
+
+This page documents creating plots using Maxima, and Google Charts.  
 
 Plots and graphics can be placed into any of the [CAStext](../Authoring/CASText.md) fields.
-
-The main way to create plots is using Maxima.  
 
 ## plot() {#plot}
 

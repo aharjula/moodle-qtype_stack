@@ -4,10 +4,10 @@ _This list is currently incomplete_.
 
 More details of our development history is given in the [development track](../Developer/Development_track.md).
 
-* Chris Sangwin of Loughborough University. STACK is the brainchild of Chris Sangwin.
+* Chris Sangwin of the University of Edinburgh. STACK is the brainchild of Chris Sangwin.
 * Matti Harjula of Aalto University contributed the major developments for version 4, notably the [scientific units](../Authoring/Units.md), [Question blocks](../Authoring/Question_blocks.md).
  and [State variables](../Authoring/State.md).
-* [Tim Hunt](http://tjhunt.blogspot.co.uk/) of the Open University.
+* [Tim Hunt](http://tjhunt.blogspot.co.uk/) of the Open University wrote much of the core code for version 3, including the integration with Moodle.
 * Matti Pauna of the University of Helsinki.
 
 Previous developers have included.
