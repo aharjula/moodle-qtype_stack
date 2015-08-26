@@ -1,7 +1,7 @@
 # STACK 4 ALPHA - the stateful variant
 
-This branch contains the experimental question model expansion that includes
-state-variables. Check the doc/en/Authoring/State.md to start working with it.
+This branch contains the experimental question model expansion that includes state-variables. Check the
+[doc/en/Authoring/State.md](doc/en/Authoring/State.md) to start working with it.
 
 [STACK](https://github.com/maths/moodle-qtype_stack/blob/master/doc/en/About/index.md)
 is an open-source system for computer-aided assessment in Mathematics and related
@@ -9,7 +9,7 @@ disciplines, with emphasis on formative assessment.
 
 STACK was created by Chris Sangwin of Loughborough University, and includes the work of
 [other contributors](https://github.com/maths/moodle-qtype_stack/blob/master/doc/en/About/Credits.md).
-State variables, blocks and scientific units were added by Matti Harulja 
+State variables, blocks and scientific units were added by Matti Harjula 
 
 ## Current state of development
 
