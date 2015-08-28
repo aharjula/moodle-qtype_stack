@@ -72,6 +72,7 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->qtype = question_bank::get_qtype('stack');
         $q->contextid = context_system::instance()->id;
 
+        $q->variabledefinitions = '';
         $q->questionvariables = '';
         $q->specificfeedback = '';
         $q->specificfeedbackformat = FORMAT_HTML;
@@ -990,6 +991,7 @@ class qtype_stack_test_helper extends question_test_helper {
 
         $qdata->options = new stdClass();
         $qdata->options->id                        = 0;
+        $qdata->options->variabledefinitions       = '';
         $qdata->options->questionvariables         = '';
         $qdata->options->specificfeedback          = '[[feedback:firsttree]]';
         $qdata->options->specificfeedbackformat    = FORMAT_HTML;
@@ -1108,6 +1110,7 @@ class qtype_stack_test_helper extends question_test_helper {
 
         $qdata->options = new stdClass();
         $qdata->options->id                        = 0;
+        $qdata->options->variabledefinitions       = '';
         $qdata->options->questionvariables         = '';
         $qdata->options->specificfeedback          = '';
         $qdata->options->specificfeedbackformat    = FORMAT_HTML;
