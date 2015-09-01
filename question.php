@@ -359,80 +359,6 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     /**
-     * Extracts names of state variables from a keyval string. For loading only relevant values from state-store.
-     * TODO move to keyval
-     * @param string that would work for a keyval-object
-     */
-    protected function extract_state_variable_references($keyvalstring) {
-        if (strpos($keyvalstring,"stack_state_") !== FALSE) {
-            $str = $keyvalstring;
-            $strings = stack_utils::all_substring_strings($str);
-            foreach ($strings as $key => $string) {
-                $str = str_replace('"'.$string.'"', '[STR:'.$key.']', $str);
-            }
-            $str = stack_utils::remove_comments($str);
-            $i = strpos($str,'stack_state_');
-            while ($i !== FALSE) {
-                $opening = -1;
-                $closing = $i+14;
-                $count = 0;
-                $in = FALSE;
-                while($closing<strlen($str)-1) {
-                    $closing++;
-                    $c = $str[$closing];
-                    if ($c == '(') {
-                        $count++;
-                        if (!$in) {
-                            $opening = $closing;
-                        }
-                        $in = TRUE;
-                    }else if ($c == ')') {
-                        $count--;
-                        if ($count == 0 && $in) {
-                            break;
-                        }
-                    }
-                }
-                $fnc = substr($str,$i,$opening - $i);
-                $params = substr($str,$opening,$closing-$opening+1);
-                $params = stack_utils::list_to_array($params,FALSE);
-                foreach ($strings as $key => $string) {
-                    foreach ($params as $ind => $param) {
-                        if ($ind == 2 && strpos($param,'[STR:'.$key.']')) {
-                            // String parameters need to stay strings in this case
-                            $params[$ind] = str_replace('[STR:'.$key.']', '"'.$string.'"', $param);
-                        } else {
-                            $params[$ind] = str_replace('[STR:'.$key.']', $string, $param);
-                        }
-                    }
-                }
-
-                $context = FALSE;
-                $name = FALSE;
-                $value = FALSE;
-                if ($fnc == 'stack_state_get' || $fnc == 'stack_state_get') {
-                    $context = $params[0];
-                    $name = $params[1];
-                    $value = $params[2];
-                } else if ($fnc == 'stack_state_increment_once' || $fnc == 'stack_state_decrement_once') {
-                    $context = 'global';
-                    $name = $params[0];
-                    $value = 0;
-                }
-
-                if (!array_key_exists($context,$this->statevariables)) {
-                    $this->statevariables[$context] = array();
-                }
-                if (!array_key_exists($name,$this->statevariables[$context])) {
-                    $this->statevariables[$context][$name] = $value;
-                }
-
-                $i = strpos($str,'stack_state_',$i+1);
-            }
-        }
-    }
-
-    /**
      * Loads identified state variables from stores and builds the casstrings to inject them to maxima.
      * Does nothing if no variables have been identified.
      * @return an array of casstrings
@@ -1133,13 +1059,8 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     public function has_state_variables() {
         if ($this->statevariables === null) {
             $this->statevariables = array();
-            $this->extract_state_variable_references($this->variabledefinitions);
-            $this->extract_state_variable_references($this->questionvariables);
-            if (!$this->prts) {
-                foreach ($this->prts as $prt) {
-                    $this->extract_state_variable_references($prt->feedbackvariables);
-                }
-            }
+            $variabledefs = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
+            $this->statevariables = $variabledefs->get_state_references($this->statevariables);
         }
         return count($this->statevariables) != 0;
     }
