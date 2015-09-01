@@ -630,8 +630,6 @@ function xmldb_qtype_stack_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2013091900, 'qtype', 'stack');
     }
 
-
-
     if ($oldversion < 2014040501) {
 
         // Define field matrixparens to be added to qtype_stack_options.
@@ -651,7 +649,8 @@ function xmldb_qtype_stack_upgrade($oldversion) {
 
         // Changing precision of field questionnote on table qtype_stack_options to (1024).
         $table = new xmldb_table('qtype_stack_options');
-        $field = new xmldb_field('questionnote', XMLDB_TYPE_CHAR, '1024', null, XMLDB_NOTNULL, null, null, 'specificfeedbackformat');
+        $field = new xmldb_field('questionnote', XMLDB_TYPE_CHAR, '1024', null, XMLDB_NOTNULL,
+                null, null, 'specificfeedbackformat');
 
         // Launch change of precision for field questionnote.
         $dbman->change_field_precision($table, $field);
@@ -662,16 +661,17 @@ function xmldb_qtype_stack_upgrade($oldversion) {
 
     if ($oldversion < 2015082100) {
 
-        // Define field statevariables to be added to qtype_stack_options
+        // Define field statevariables to be added to qtype_stack_options.
         $table = new xmldb_table('qtype_stack_options');
-        $field = new xmldb_field('variabledefinitions', XMLDB_TYPE_TEXT, 'small', null, null, null, null,'questionvariables');
+        $field = new xmldb_field('variabledefinitions', XMLDB_TYPE_TEXT, 'small', null, null,
+                null, null, 'questionvariables');
 
-        // Conditionally launch add field firstnodename
+        // Conditionally launch add field firstnodename.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        // Define tables to store the state
+        // Define tables to store the state.
         $table = new xmldb_table('qtype_stack_shared_state');
 
         // Adding fields to table qtype_stack_shared_state.
@@ -685,7 +685,7 @@ function xmldb_qtype_stack_upgrade($oldversion) {
         $table->add_key('userid', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
 
         // Adding indexes to table qtype_stack_shared_state.
-        $table->add_index('userid-name', XMLDB_INDEX_UNIQUE, array('userid','name'));
+        $table->add_index('userid-name', XMLDB_INDEX_UNIQUE, array('userid', 'name'));
 
         // Conditionally launch create table for qtype_stack_shared_state.
         if (!$dbman->table_exists($table)) {

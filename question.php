@@ -283,8 +283,8 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         // 0. question variable definitions.
         $variabledefs = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
         if ($this->has_state_variables()) {
-            // Load identified state variables and all instance variables
-            $session = new stack_cas_session($this->load_state_variables(),$this->options,$this->seed);
+            // Load identified state variables and all instance variables.
+            $session = new stack_cas_session($this->load_state_variables(), $this->options, $this->seed);
             $session->merge_session($variabledefs->get_session());
         } else {
             $session = $variabledefs->get_session();
@@ -320,9 +320,10 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $prtpartiallycorrect = $this->prepare_cas_text($this->prtpartiallycorrect, $session);
         $prtincorrect        = $this->prepare_cas_text($this->prtincorrect, $session);
 
-        // If state variables are present add the retrival command
+        // If state variables are present add the retrival command.
         if ($this->has_state_variables()) {
-            // Actually stored in an variable named 'stackstatevars' but if we access it directly we would need to add an special case elsewhere
+            // Actually stored in an variable named 'stackstatevars' but if we access it directly we would
+            // need to add an special case elsewhere.
             $cs = new stack_cas_casstring('stack_state_full_state(1)');
             $cs->get_valid('t');
             $cs->set_key('stackstateexport');
@@ -339,9 +340,9 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                     $session->get_errors($this->user_can_edit()));
         }
 
-        // If state variables are present store state changes
+        // If state variables are present store state changes.
         if ($this->has_state_variables()) {
-            $this->store_state_variables($session->get_value_key('stackstateexport'),$init);
+            $this->store_state_variables($session->get_value_key('stackstateexport'), $init);
         }
 
         // Finally, store only those values really needed for later.
@@ -351,7 +352,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $this->prtcorrectinstantiated          = $prtcorrect->get_display_castext();
         $this->prtpartiallycorrectinstantiated = $prtpartiallycorrect->get_display_castext();
         $this->prtincorrectinstantiated        = $prtincorrect->get_display_castext();
-        $session->prune_session($sessionlength-$sessionpreamblelength+1,$sessionpreamblelength);
+        $session->prune_session($sessionlength - $sessionpreamblelength + 1, $sessionpreamblelength);
         $this->session = $session;
 
         // Allow inputs to update themselves based on the model answers.
@@ -361,38 +362,39 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     /**
      * Loads identified state variables from stores and builds the casstrings to inject them to maxima.
      * Does nothing if no variables have been identified.
-     * @return an array of casstrings
+     * @return an array of casstrings.
      */
     protected function load_state_variables() {
         global $USER, $DB;
 
         $loadcommands = array();
-        // The instance variables are the most importatnt things and need to be loaded first
-        // And as they may exist without being visible in the code we need to check for them if 'globals' exist
-        if ((array_key_exists('instance',$this->statevariables) && count($this->statevariables['instance']) > 0) || (array_key_exists('global',$this->statevariables) && count($this->statevariables['global']) > 0)) {
+        // The instance variables are the most importatnt things and need to be loaded first.
+        // And as they may exist without being visible in the code we need to check for them if 'globals' exist.
+        if ((array_key_exists('instance', $this->statevariables) && count($this->statevariables['instance']) > 0)
+                || (array_key_exists('global', $this->statevariables) && count($this->statevariables['global']) > 0)) {
             $vars = $this->step->get_qt_data();
             foreach ($vars as $name => $value) {
-                if(strpos($name,"_isv_")===0){
-                    $this->statevariables['instance'][substr($name,5)] = $value;
+                if (strpos($name, "_isv_") === 0) {
+                    $this->statevariables['instance'][substr($name, 5)] = $value;
                 }
             }
-            if (is_a($this->step,'question_attempt_step_read_only')) {
+            if (is_a($this->step, 'question_attempt_step_read_only')) {
                 $data = $DB->get_records('question_attempt_step_data', array('attemptstepid' => $this->step->get_id()));
                 foreach ($data as $row) {
-                    if(strpos($row->name,"_isv_")===0){
-                        $this->statevariables['instance'][substr($row->name,5)] = $row->value;
+                    if (strpos($row->name, "_isv_") === 0){
+                        $this->statevariables['instance'][substr($row->name, 5)] = $row->value;
                     }
                 }
             }
         }
 
-        if (array_key_exists('global',$this->statevariables) && count($this->statevariables['global']) > 0) {
+        if (array_key_exists('global', $this->statevariables) && count($this->statevariables['global']) > 0) {
             // We are going to add these to the instance context anyway...
-            if (!array_key_exists('instance',$this->statevariables)) {
+            if (!array_key_exists('instance', $this->statevariables)) {
                 $this->statevariables['instance'] = array();
             }
             list($insql, $inparams) = $DB->get_in_or_equal(array_keys($this->statevariables['global']));
-            $params = array_merge(array($USER->id),$inparams);
+            $params = array_merge(array($USER->id), $inparams);
             $sql = "SELECT * FROM {qtype_stack_shared_state} WHERE userid = ? AND name $insql";
             $states = $DB->get_records_sql($sql, $params);
             foreach ($states as $state) {
@@ -403,20 +405,20 @@ class qtype_stack_question extends question_graded_automatically_with_countback
             }
         }
 
-        if (array_key_exists('user',$this->statevariables) && count($this->statevariables['user']) > 0) {
-            if (array_key_exists('id',$this->statevariables['user'])) {
+        if (array_key_exists('user', $this->statevariables) && count($this->statevariables['user']) > 0) {
+            if (array_key_exists('id', $this->statevariables['user'])) {
                 $this->statevariables['user']['id'] = $USER->id;
             }
-            if (array_key_exists('username',$this->statevariables['user'])) {
+            if (array_key_exists('username', $this->statevariables['user'])) {
                 $this->statevariables['user']['username'] = '"'.$USER->username.'"';
             }
-            if (array_key_exists('firstname',$this->statevariables['user'])) {
+            if (array_key_exists('firstname', $this->statevariables['user'])) {
                 $this->statevariables['user']['firstname'] = '"'.$USER->firstname.'"';
             }
-            if (array_key_exists('lastname',$this->statevariables['user'])) {
+            if (array_key_exists('lastname', $this->statevariables['user'])) {
                 $this->statevariables['user']['lastname'] = '"'.$USER->lastname.'"';
             }
-            if (array_key_exists('idnumber',$this->statevariables['user'])) {
+            if (array_key_exists('idnumber', $this->statevariables['user'])) {
                 $this->statevariables['user']['idnumber'] = '"'.$USER->idnumber.'"';
             }
         }
@@ -440,24 +442,24 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * @param string from maxima
      * @param boolean init-variables, causes storage of variables that have not changed
      */
-    protected function store_state_variables($maximavalue,$init=false) {
+    protected function store_state_variables($maximavalue, $init=false) {
         global $USER, $DB;
         $vars = array();
         $changes = array();
-        if (strpos($maximavalue,"stackstatevar(") !== FALSE) {
+        if (strpos($maximavalue, "stackstatevar(") !== false) {
             $str = $maximavalue;
             $strings = stack_utils::all_substring_strings($str);
             foreach ($strings as $key => $string) {
                 $str = str_replace('"'.$string.'"', '[STR:'.$key.']', $str);
             }
-            $vl = stack_utils::list_to_array($str,FALSE);
+            $vl = stack_utils::list_to_array($str, false);
             foreach ($vl as $item) {
-                $params = "[".substr($item,strlen("stackstatevar("),-1)."]";
-                $params = stack_utils::list_to_array($params,FALSE);
+                $params = "[".substr($item, strlen("stackstatevar("), -1)."]";
+                $params = stack_utils::list_to_array($params, false);
                 foreach ($strings as $key => $string) {
                     foreach ($params as $ind => $param) {
-                        if ($ind == 2 && strpos($param,'[STR:'.$key.']')) {
-                            // String parameters need to stay strings in this case
+                        if ($ind == 2 && strpos($param, '[STR:'.$key.']')) {
+                            // String parameters need to stay strings in this case.
                             $params[$ind] = str_replace('[STR:'.$key.']', '"'.$string.'"', $param);
                         } else {
                             $params[$ind] = str_replace('[STR:'.$key.']', $string, $param);
@@ -469,7 +471,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                 $name = $params[1];
                 $value = $params[2];
                 $changed = ($params[3] == 'true');
-                if (!array_key_exists($context,$vars)) {
+                if (!array_key_exists($context, $vars)) {
                     $vars[$context] = array();
                     $changes[$context] = array();
                 }
@@ -478,10 +480,9 @@ class qtype_stack_question extends question_graded_automatically_with_countback
             }
         }
 
-
-        if (array_key_exists('global',$vars) && count($vars['global']) > 0) {
+        if (array_key_exists('global', $vars) && count($vars['global']) > 0) {
             list($insql, $inparams) = $DB->get_in_or_equal(array_keys($vars['global']));
-            $params = array_merge(array($USER->id),$inparams);
+            $params = array_merge(array($USER->id), $inparams);
             $sql = "SELECT * FROM {qtype_stack_shared_state} WHERE userid = ? AND name $insql";
             $states = $DB->get_records_sql($sql, $params);
             foreach ($states as $state) {
@@ -491,8 +492,8 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                 }
                 unset($vars['global'][$state->name]);
             }
-            // After all the known ones have been removed we can insert the remaining new ones
-            if(count($vars['global']) > 0) {
+            // After all the known ones have been removed we can insert the remaining new ones.
+            if (count($vars['global']) > 0) {
                 $newrecords = array();
                 foreach ($vars['global'] as $name => $value) {
                     $record = new stdClass();
@@ -505,41 +506,41 @@ class qtype_stack_question extends question_graded_automatically_with_countback
             }
         }
 
-        if (array_key_exists('instance',$vars) && count($vars['instance']) > 0) {
-            $has_changes = $init;
+        if (array_key_exists('instance', $vars) && count($vars['instance']) > 0) {
+            $haschanges = $init;
             foreach ($vars['instance'] as $key => $val) {
-                $has_changes = $changes['instance'][$key] || $has_changes;
+                $haschanges = $changes['instance'][$key] || $haschanges;
             }
-            if ($has_changes && is_a($this->step,'question_attempt_step_read_only')) {
+            if ($haschanges && is_a($this->step, 'question_attempt_step_read_only')) {
                 /* So this is the ugly way, and will cause issues also in the load code */
                 $data = $DB->get_records('question_attempt_step_data', array('attemptstepid' => $this->step->get_id()));
                 foreach ($data as $row) {
-                    $key = substr($row->name,5);
-                    if (strpos($row->name,"_isv_")===0 && array_key_exists($key,$vars['instance'])) {
+                    $key = substr($row->name, 5);
+                    if (strpos($row->name, "_isv_") === 0 && array_key_exists($key, $vars['instance'])) {
                         if ($vars['instance'][$key] != $row->value) {
                             $row->value = $vars['instance'][$key];
-                            $DB->update_record('question_attempt_step_data',$row);
+                            $DB->update_record('question_attempt_step_data', $row);
                         }
                         unset($vars['instance'][$key]);
                     }
                 }
-                $new_records = array();
+                $newrecords = array();
                 foreach ($vars['instance'] as $key => $val) {
-                    if ($changes['instance'][$key]||$init) {
+                    if ($changes['instance'][$key] || $init) {
                         $record = new stdClass();
                         $record->attemptstepid = $this->step->get_id();
                         $record->name = "_isv_$key";
                         $record->value = $value;
-                        $new_records[] = $record;
+                        $newrecords[] = $record;
                     }
                 }
-                if (count($new_records) > 0) {
-                    $DB->insert_records('question_attempt_step_data', $new_records);
+                if (count($newrecords) > 0) {
+                    $DB->insert_records('question_attempt_step_data', $newrecords);
                 }
-            } else if ($has_changes) {
+            } else if ($haschanges) {
                 foreach ($vars['instance'] as $key => $val) {
                     if ($changes['instance'][$key]||$init) {
-                        $this->step->set_qt_var("_isv_$key",$val);
+                        $this->step->set_qt_var("_isv_$key", $val);
                     }
                 }
             }
@@ -990,8 +991,8 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $session = $variabledefs;
 
         if ($this->has_state_variables()) {
-            // Construct the statefull session for this
-            $loadsession = new stack_cas_session($this->load_state_variables(),$this->options,$this->seed);
+            // Construct the statefull session for this.
+            $loadsession = new stack_cas_session($this->load_state_variables(), $this->options, $this->seed);
             $loadsession->merge_session($session);
             $session = $loadsession;
         }
