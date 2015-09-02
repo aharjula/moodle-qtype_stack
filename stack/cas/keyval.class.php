@@ -156,25 +156,25 @@ class stack_cas_keyval {
     }
 
     public function get_state_references($references = array()) {
-        if (strpos($this->raw,"stack_state_") !== FALSE) {
+        if (strpos($this->raw, "stack_state_") !== false) {
             if (null === $this->valid) {
                 $this->validate();
             }
 
             foreach ($this->session->get_session() as $cs) {
-                if (strpos($cs->get_raw_casstring(),"stack_state") !== FALSE) {
+                if (strpos($cs->get_raw_casstring(), "stack_state") !== false) {
                     $str = $cs->get_raw_casstring();
                     $strings = stack_utils::all_substring_strings($str);
                     foreach ($strings as $key => $string) {
                         $str = str_replace('"'.$string.'"', '[STR:'.$key.']', $str);
                     }
-                    $i = strpos($str,'stack_state_');
-                    while ($i !== FALSE) {
+                    $i = strpos($str, 'stack_state_');
+                    while ($i !== false) {
                         $opening = -1;
-                        $closing = $i+14;
+                        $closing = $i + 14;
                         $count = 0;
-                        $in = FALSE;
-                        while($closing<strlen($str)-1) {
+                        $in = false;
+                        while ($closing < strlen($str) - 1) {
                             $closing++;
                             $c = $str[$closing];
                             if ($c == '(') {
@@ -182,7 +182,7 @@ class stack_cas_keyval {
                                 if (!$in) {
                                     $opening = $closing;
                                 }
-                                $in = TRUE;
+                                $in = true;
                             }else if ($c == ')') {
                                 $count--;
                                 if ($count == 0 && $in) {
@@ -190,12 +190,12 @@ class stack_cas_keyval {
                                 }
                             }
                         }
-                        $fnc = substr($str,$i,$opening - $i);
-                        $params = substr($str,$opening,$closing-$opening+1);
-                        $params = stack_utils::list_to_array($params,FALSE);
+                        $fnc = substr($str, $i, $opening - $i);
+                        $params = substr($str, $opening, $closing - $opening + 1);
+                        $params = stack_utils::list_to_array($params, false);
                         foreach ($strings as $key => $string) {
                             foreach ($params as $ind => $param) {
-                                if ($ind == 2 && strpos($param,'[STR:'.$key.']')) {
+                                if ($ind == 2 && strpos($param, '[STR:'.$key.']')) {
                                     // String parameters need to stay strings in this case
                                     $params[$ind] = str_replace('[STR:'.$key.']', '"'.$string.'"', $param);
                                 } else {
@@ -204,9 +204,9 @@ class stack_cas_keyval {
                             }
                         }
 
-                        $context = FALSE;
-                        $name = FALSE;
-                        $value = FALSE;
+                        $context = false;
+                        $name = false;
+                        $value = false;
                         if ($fnc == 'stack_state_get' || $fnc == 'stack_state_get') {
                             $context = $params[0];
                             $name = $params[1];
@@ -217,14 +217,14 @@ class stack_cas_keyval {
                             $value = 0;
                         }
 
-                        if (!array_key_exists($context,$references)) {
+                        if (!array_key_exists($context, $references)) {
                             $references[$context] = array();
                         }
-                        if (!array_key_exists($name,$references[$context])) {
+                        if (!array_key_exists($name, $references[$context])) {
                             $references[$context][$name] = $value;
                         }
 
-                        $i = strpos($str,'stack_state_',$i+1);
+                        $i = strpos($str, 'stack_state_', $i+1);
                     }
                 }
             }
