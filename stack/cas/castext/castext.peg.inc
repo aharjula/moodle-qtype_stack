@@ -42,14 +42,15 @@ class stack_cas_castext_castextparser extends Parser\Basic {
     /**
      * A list of TeX environments that act as math-mode.
      */
-    private static $math_mode_envs = array('align','align*','alignat','alignat*','eqnarray','eqnarray*','equation','equation*','gather','gather*','multline','multline*');
+    private static $mathmodeenvs = array('align', 'align*', 'alignat', 'alignat*', 'eqnarray', 'eqnarray*', 'equation',
+            'equation*', 'gather', 'gather*', 'multline', 'multline*');
 
     /**
      * A function to test a string for necessary features related to castextparser.
      * returns true if the string should be passed trough the parser
      */
     public static function castext_parsing_required($test) {
-        return (strpos($test, "{@")!==false || strpos($test, "{#")!==false || strpos($test, "[[")!==false);
+        return (strpos($test, "{@") !== false || strpos($test, "{#") !== false || strpos($test, "[[") !== false);
     }
 
     /**
@@ -57,23 +58,23 @@ class stack_cas_castext_castextparser extends Parser\Basic {
      * Intentionally skips the text-element of the root as modifications made
      * to the leafs might not have been done there.
      */
-    public static function to_string($parse_tree) {
+    public static function to_string($parsetree) {
         $r = "";
-        switch ($parse_tree['_matchrule']) {
+        switch ($parsetree['_matchrule']) {
             case "castext":
-                if (array_key_exists('_matchrule', $parse_tree['item'])) {
-                    $r .= stack_cas_castext_castextparser::to_string($parse_tree['item']);
+                if (array_key_exists('_matchrule', $parsetree['item'])) {
+                    $r .= self::to_string($parsetree['item']);
                 } else {
-                    foreach ($parse_tree['item'] as $sub_tree) {
-                        $r .= stack_cas_castext_castextparser::to_string($sub_tree);
+                    foreach ($parsetree['item'] as $subtree) {
+                        $r .= self::to_string($subtree);
                     }
                 }
                 break;
             case "block":
-                $r .= "[[ " . $parse_tree['name'];
+                $r .= "[[ " . $parsetree['name'];
 
-                if (count($parse_tree['params']) > 0) {
-                    foreach ($parse_tree['params'] as $key => $value) {
+                if (count($parsetree['params']) > 0) {
+                    foreach ($parsetree['params'] as $key => $value) {
                         $r .= " $key=";
                         if (strpos($value, '"') === false) {
                             $r .= '"' . $value . '"';
@@ -85,14 +86,14 @@ class stack_cas_castext_castextparser extends Parser\Basic {
 
                 $r .= " ]]";
 
-                if (array_key_exists('_matchrule', $parse_tree['item'])) {
-                    $r .= stack_cas_castext_castextparser::to_string($parse_tree['item']);
+                if (array_key_exists('_matchrule', $parsetree['item'])) {
+                    $r .= self::to_string($parsetree['item']);
                 } else {
-                    foreach ($parse_tree['item'] as $sub_tree) {
-                        $r .= stack_cas_castext_castextparser::to_string($sub_tree);
+                    foreach ($parsetree['item'] as $subtree) {
+                        $r .= self::to_string($subtree);
                     }
                 }
-                $r .= "[[/ " . $parse_tree['name'] . " ]]";
+                $r .= "[[/ " . $parsetree['name'] . " ]]";
 
                 break;
             case "ioblock":
@@ -109,7 +110,7 @@ class stack_cas_castext_castextparser extends Parser\Basic {
             case "blockopen":
             case "blockempty":
             case "blockclose":
-                $r .= $parse_tree['text'];
+                $r .= $parsetree['text'];
                 break;
         }
         return $r;
@@ -120,73 +121,77 @@ class stack_cas_castext_castextparser extends Parser\Basic {
      * Not unlike similar functions in DOM-parsers.
      * returns an array that has been normalized
      */
-    public static function normalize($parse_tree) {
-        // start by paintting the mathmode if not paintted elsewhere
-        if (!array_key_exists('mathmode', $parse_tree)) {
+    public static function normalize($parsetree) {
+        // Start by paintting the mathmode if not paintted elsewhere.
+        if (!array_key_exists('mathmode', $parsetree)) {
             $mathmode = false;
-            $parse_tree['mathmode'] = false;
-            if (array_key_exists('item', $parse_tree) && is_array($parse_tree['item']) && count($parse_tree['item']) > 1 && !array_key_exists('_matchrule', $parse_tree['item'])) {
-                foreach ($parse_tree['item'] as $key => $value) {
+            $parsetree['mathmode'] = false;
+            if (array_key_exists('item', $parsetree) && is_array($parsetree['item']) && count($parsetree['item']) > 1 &&
+                    !array_key_exists('_matchrule', $parsetree['item'])) {
+                foreach ($parsetree['item'] as $key => $value) {
                     if ($value['_matchrule'] == 'mathmodeclose') {
                         $mathmode = false;
                     } else if ($value['_matchrule'] == 'mathmodeopen') {
                         $mathmode = true;
-                    } else if ($value['_matchrule'] == 'begintexenv' && array_search($value['value']['text'],self::$math_mode_envs)!==FALSE) {
+                    } else if ($value['_matchrule'] == 'begintexenv' &&
+                            array_search($value['value']['text'], self::$mathmodeenvs) !== false) {
                         $mathmode = true;
-                    } else if ($value['_matchrule'] == 'endtexenv' && array_search($value['value']['text'],self::$math_mode_envs)!==FALSE) {
+                    } else if ($value['_matchrule'] == 'endtexenv' &&
+                            array_search($value['value']['text'], self::$mathmodeenvs) !== false) {
                         $mathmode = false;
                     }
 
-                    $parse_tree['item'][$key]['mathmode'] = $mathmode;
+                    $parsetree['item'][$key]['mathmode'] = $mathmode;
                 }
             }
         }
 
-        if (array_key_exists('item', $parse_tree) && is_array($parse_tree['item']) && !array_key_exists('_matchrule', $parse_tree['item']) && count($parse_tree['item']) > 1) {
+        if (array_key_exists('item', $parsetree) && is_array($parsetree['item']) && !array_key_exists('_matchrule',
+                $parsetree['item']) && count($parsetree['item']) > 1) {
             // Key listing maybe not continuous...
-            $keys = array_keys($parse_tree['item']);
-            for ($i=0; $i<count($keys)-1; $i++) {
+            $keys = array_keys($parsetree['item']);
+            for ($i = 0; $i < count($keys) - 1; $i++) {
                 $now = $keys[$i];
-                $next = $keys[$i+1];
-                if ($parse_tree['item'][$now]['_matchrule'] == 'ioblock' ||
-                    $parse_tree['item'][$now]['_matchrule'] == 'ws' ||
-                    $parse_tree['item'][$now]['_matchrule'] == 'misc' ||
-                    $parse_tree['item'][$now]['_matchrule'] == 'breaks' ||
-                    $parse_tree['item'][$now]['_matchrule'] == 'text' ||
-                    $parse_tree['item'][$now]['_matchrule'] == 'mathmodeopen' ||
-                    $parse_tree['item'][$now]['_matchrule'] == 'mathmodeclose' ||
-                    $parse_tree['item'][$now]['_matchrule'] == 'begintexenv' ||
-                    $parse_tree['item'][$now]['_matchrule'] == 'endtexenv' ) {
-                    if ($parse_tree['item'][$next]['_matchrule'] == 'ioblock' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'ws' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'misc' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'breaks' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'mathmodeopen' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'mathmodeclose' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'begintexenv' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'endtexenv') {
-                        $parse_tree['item'][$next]['text'] = $parse_tree['item'][$now]['text'].$parse_tree['item'][$next]['text'];
-                        $parse_tree['item'][$next]['_matchrule'] = 'text';
-                        unset($parse_tree['item'][$now]);
+                $next = $keys[$i + 1];
+                if ($parsetree['item'][$now]['_matchrule'] == 'ioblock' ||
+                    $parsetree['item'][$now]['_matchrule'] == 'ws' ||
+                    $parsetree['item'][$now]['_matchrule'] == 'misc' ||
+                    $parsetree['item'][$now]['_matchrule'] == 'breaks' ||
+                    $parsetree['item'][$now]['_matchrule'] == 'text' ||
+                    $parsetree['item'][$now]['_matchrule'] == 'mathmodeopen' ||
+                    $parsetree['item'][$now]['_matchrule'] == 'mathmodeclose' ||
+                    $parsetree['item'][$now]['_matchrule'] == 'begintexenv' ||
+                    $parsetree['item'][$now]['_matchrule'] == 'endtexenv' ) {
+                    if ($parsetree['item'][$next]['_matchrule'] == 'ioblock' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'ws' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'misc' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'breaks' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'mathmodeopen' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'mathmodeclose' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'begintexenv' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'endtexenv') {
+                        $parsetree['item'][$next]['text'] = $parsetree['item'][$now]['text'].$parsetree['item'][$next]['text'];
+                        $parsetree['item'][$next]['_matchrule'] = 'text';
+                        unset($parsetree['item'][$now]);
                     } else {
-                        $parse_tree['item'][$now]['_matchrule'] = 'text';
+                        $parsetree['item'][$now]['_matchrule'] = 'text';
                     }
                 } else {
-                    $parse_tree['item'][$now] = stack_cas_castext_castextparser::normalize($parse_tree['item'][$now]);
-                    if ($parse_tree['item'][$next]['_matchrule'] == 'ioblock' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'ws' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'misc' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'breaks' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'mathmodeopen' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'mathmodeclose' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'begintexenv' ||
-                        $parse_tree['item'][$next]['_matchrule'] == 'endtexenv' ) {
-                        $parse_tree['item'][$next]['_matchrule'] = 'text';
+                    $parsetree['item'][$now] = self::normalize($parsetree['item'][$now]);
+                    if ($parsetree['item'][$next]['_matchrule'] == 'ioblock' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'ws' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'misc' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'breaks' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'mathmodeopen' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'mathmodeclose' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'begintexenv' ||
+                        $parsetree['item'][$next]['_matchrule'] == 'endtexenv' ) {
+                        $parsetree['item'][$next]['_matchrule'] = 'text';
                     }
                 }
             }
         }
-        return $parse_tree;
+        return $parsetree;
     }
 
     /**
@@ -194,143 +199,150 @@ class stack_cas_castext_castextparser extends Parser\Basic {
      * It will also remap any parameters to a simpler form. And paint the mathmode bit on the blocks.
      * returns an array that has been remapped in that way.
      */
-    public static function block_conversion($parse_tree) {
-        // start by paintting the mathmode if not paintted in previous normalise or elsewhere
-        if (!array_key_exists('mathmode', $parse_tree)) {
+    public static function block_conversion($parsetree) {
+        // Start by paintting the mathmode if not paintted in previous normalise or elsewhere.
+        if (!array_key_exists('mathmode', $parsetree)) {
             $mathmode = false;
-            $parse_tree['mathmode'] = false;
-            if (array_key_exists('item', $parse_tree) && is_array($parse_tree['item']) && count($parse_tree['item']) > 1 && !array_key_exists('_matchrule', $parse_tree['item'])) {
-                foreach ($parse_tree['item'] as $key => $value) {
+            $parsetree['mathmode'] = false;
+            if (array_key_exists('item', $parsetree) && is_array($parsetree['item']) && count($parsetree['item']) > 1 &&
+                    !array_key_exists('_matchrule', $parsetree['item'])) {
+                foreach ($parsetree['item'] as $key => $value) {
                     if ($value['_matchrule'] == 'mathmodeclose') {
                         $mathmode = false;
                     } else if ($value['_matchrule'] == 'mathmodeopen') {
                         $mathmode = true;
-                    } else if ($value['_matchrule'] == 'begintexenv' && array_search($value['value']['text'],self::$math_mode_envs)!==FALSE) {
+                    } else if ($value['_matchrule'] == 'begintexenv' &&
+                            array_search($value['value']['text'], self::$mathmodeenvs) !== false) {
                         $mathmode = true;
-                    } else if ($value['_matchrule'] == 'endtexenv' && array_search($value['value']['text'],self::$math_mode_envs)!==FALSE) {
+                    } else if ($value['_matchrule'] == 'endtexenv' &&
+                            array_search($value['value']['text'], self::$mathmodeenvs) !== false) {
                         $mathmode = false;
                     }
-                    $parse_tree['item'][$key]['mathmode'] = $mathmode;
+                    $parsetree['item'][$key]['mathmode'] = $mathmode;
                 }
             }
         }
 
-        $something_changed = true;
-        while ($something_changed) {
-            $something_changed = false;
-            if (array_key_exists('item', $parse_tree) && is_array($parse_tree['item']) && count($parse_tree['item']) > 1 && !array_key_exists('_matchrule', $parse_tree['item'])) {
-                $end_blocks = array();
-                $start_blocks = array();
-                foreach ($parse_tree['item'] as $key => $value) {
+        $somethingchanged = true;
+        while ($somethingchanged) {
+            $somethingchanged = false;
+            if (array_key_exists('item', $parsetree) && is_array($parsetree['item']) && count($parsetree['item']) > 1 &&
+                    !array_key_exists('_matchrule', $parsetree['item'])) {
+                $endblocks = array();
+                $startblocks = array();
+                foreach ($parsetree['item'] as $key => $value) {
                     if ($value['_matchrule'] == 'blockclose') {
-                        $end_blocks[] = $key;
+                        $endblocks[] = $key;
                     } else if ($value['_matchrule'] == 'blockopen') {
-                        $start_blocks[] = $key;
+                        $startblocks[] = $key;
                     } else if ($value['_matchrule'] == 'blockempty') {
-                        $parse_tree['item'][$key]['_matchrule'] = "block";
-                        $parse_tree['item'][$key]['name'] = $parse_tree['item'][$key]['name'][1]['text'];
+                        $parsetree['item'][$key]['_matchrule'] = "block";
+                        $parsetree['item'][$key]['name'] = $parsetree['item'][$key]['name'][1]['text'];
                         $params = array();
 
-                        if (array_key_exists('params', $parse_tree['item'][$key])) {
-                            if (array_key_exists('_matchrule', $parse_tree['item'][$key]['params'])) {
-                                $params[$parse_tree['item'][$key]['params']['key']['text']] = $parse_tree['item'][$key]['params']['value']['text'];
+                        if (array_key_exists('params', $parsetree['item'][$key])) {
+                            if (array_key_exists('_matchrule', $parsetree['item'][$key]['params'])) {
+                                $params[$parsetree['item'][$key]['params']['key']['text']] =
+                                        $parsetree['item'][$key]['params']['value']['text'];
                             } else {
-                                foreach ($parse_tree['item'][$key]['params'] as $param) {
+                                foreach ($parsetree['item'][$key]['params'] as $param) {
                                     $params[$param['key']['text']] = $param['value']['text'];
                                 }
                             }
                         }
-                        $parse_tree['item'][$key]['params'] = $params;
-                        $parse_tree['item'][$key]['item'] = array();
+                        $parsetree['item'][$key]['params'] = $params;
+                        $parsetree['item'][$key]['item'] = array();
                     }
                 }
 
                 $i = 0;
-                while ($i < count($end_blocks)) {
-                    $end_candidate_index = $end_blocks[$i];
-                    $closest_start_candidate = -1;
-                    foreach ($start_blocks as $cand) {
-                        if ($cand < $end_candidate_index && $cand > $closest_start_candidate) {
-                            $closest_start_candidate = $cand;
+                while ($i < count($endblocks)) {
+                    $endcandidateindex = $endblocks[$i];
+                    $closeststartcandidate = -1;
+                    foreach ($startblocks as $cand) {
+                        if ($cand < $endcandidateindex && $cand > $closeststartcandidate) {
+                            $closeststartcandidate = $cand;
                         }
                     }
-                    if ($i > 0 && $end_blocks[$i-1] > $closest_start_candidate) {
-                        // There is a missmatch of open-close tags,
-                        // generic error handling handles that
+                    if ($i > 0 && $endblocks[$i - 1] > $closeststartcandidate) {
+                        // There is a missmatch of open-close tags, generic error handling handles that.
                         $i++;
                         break;
                     }
 
                     $i++;
 
-                    if ($closest_start_candidate !== null && $parse_tree['item'][$end_candidate_index]['name'][1]['text'] == $parse_tree['item'][$closest_start_candidate]['name'][1]['text']) {
-                        $parse_tree['item'][$closest_start_candidate]['_matchrule'] = "block";
+                    if ($closeststartcandidate !== null && $parsetree['item'][$endcandidateindex]['name'][1]['text'] ==
+                            $parsetree['item'][$closeststartcandidate]['name'][1]['text']) {
+                        $parsetree['item'][$closeststartcandidate]['_matchrule'] = "block";
 
-                        $parse_tree['item'][$closest_start_candidate]['name'] = $parse_tree['item'][$closest_start_candidate]['name'][1]['text'];
+                        $parsetree['item'][$closeststartcandidate]['name'] =
+                                $parsetree['item'][$closeststartcandidate]['name'][1]['text'];
 
                         $params = array();
 
-                        if (array_key_exists('params', $parse_tree['item'][$closest_start_candidate])) {
-                            if (array_key_exists('_matchrule', $parse_tree['item'][$closest_start_candidate]['params'])) {
-                                $params[$parse_tree['item'][$closest_start_candidate]['params']['key']['text']] = $parse_tree['item'][$closest_start_candidate]['params']['value']['text'];
+                        if (array_key_exists('params', $parsetree['item'][$closeststartcandidate])) {
+                            if (array_key_exists('_matchrule', $parsetree['item'][$closeststartcandidate]['params'])) {
+                                $params[$parsetree['item'][$closeststartcandidate]['params']['key']['text']] =
+                                        $parsetree['item'][$closeststartcandidate]['params']['value']['text'];
                             } else {
-                                foreach ($parse_tree['item'][$closest_start_candidate]['params'] as $param) {
+                                foreach ($parsetree['item'][$closeststartcandidate]['params'] as $param) {
                                     $params[$param['key']['text']] = $param['value']['text'];
                                 }
                             }
                         }
-                        $parse_tree['item'][$closest_start_candidate]['params'] = $params;
-                        $parse_tree['item'][$closest_start_candidate]['item'] = array();
+                        $parsetree['item'][$closeststartcandidate]['params'] = $params;
+                        $parsetree['item'][$closeststartcandidate]['item'] = array();
 
-                        foreach ($parse_tree['item'] as $key => $value) {
-                            if ($key > $closest_start_candidate && $key < $end_candidate_index) {
-                                $parse_tree['item'][$closest_start_candidate]['item'][] = $value;
-                                $parse_tree['item'][$closest_start_candidate]['text'] .= $value['text'];
-                                unset($parse_tree['item'][$key]);
+                        foreach ($parsetree['item'] as $key => $value) {
+                            if ($key > $closeststartcandidate && $key < $endcandidateindex) {
+                                $parsetree['item'][$closeststartcandidate]['item'][] = $value;
+                                $parsetree['item'][$closeststartcandidate]['text'] .= $value['text'];
+                                unset($parsetree['item'][$key]);
                             }
                         }
 
-                        $parse_tree['item'][$closest_start_candidate]['text'] .= $parse_tree['item'][$end_candidate_index]['text'];
-                        unset($parse_tree['item'][$end_candidate_index]);
+                        $parsetree['item'][$closeststartcandidate]['text'] .= $parsetree['item'][$endcandidateindex]['text'];
+                        unset($parsetree['item'][$endcandidateindex]);
 
-                        $something_changed = true;
+                        $somethingchanged = true;
                         break;
                     }
                 }
             }
         }
 
-        $err = stack_cas_castext_castextparser::extract_block_missmatch($parse_tree);
+        $err = self::extract_block_missmatch($parsetree);
         if (count($err) > 0) {
-            if (array_key_exists('errors', $parse_tree)) {
-                $parse_tree['errors'] .= '<br/>' . implode('<br/>', $err);
+            if (array_key_exists('errors', $parsetree)) {
+                $parsetree['errors'] .= '<br/>' . implode('<br/>', $err);
             } else {
-                $parse_tree['errors'] = implode('<br/>', $err);
+                $parsetree['errors'] = implode('<br/>', $err);
             }
         }
 
-        return $parse_tree;
+        return $parsetree;
     }
 
-    private static function extract_block_missmatch($parse_tree) {
+    private static function extract_block_missmatch($parsetree) {
         $err = array();
-        switch ($parse_tree['_matchrule']) {
+        switch ($parsetree['_matchrule']) {
             case "castext":
             case "block":
-                if (array_key_exists('_matchrule', $parse_tree['item'])) {
-                    $err = stack_cas_castext_castextparser::extract_block_missmatch($parse_tree['item']);
+                if (array_key_exists('_matchrule', $parsetree['item'])) {
+                    $err = self::extract_block_missmatch($parsetree['item']);
                 } else {
                     $err = array();
-                    foreach ($parse_tree['item'] as $sub_tree) {
-                        $err = array_merge($err, stack_cas_castext_castextparser::extract_block_missmatch($sub_tree));
+                    foreach ($parsetree['item'] as $subtree) {
+                        $err = array_merge($err, self::extract_block_missmatch($subtree));
                     }
                 }
                 break;
             case "blockopen":
-                $err[] = "'[[ " . $parse_tree['name'][1]['text'] . " ]]' " . stack_string('stackBlock_missmatch');
+                $err[] = "'[[ " . $parsetree['name'][1]['text'] . " ]]' " . stack_string('stackBlock_missmatch');
                 break;
             case "blockclose":
-                $err[] = "'[[/ " . $parse_tree['name'][1]['text'] . " ]]' " . stack_string('stackBlock_missmatch');
+                $err[] = "'[[/ " . $parsetree['name'][1]['text'] . " ]]' " . stack_string('stackBlock_missmatch');
                 break;
         }
 
@@ -364,7 +376,8 @@ class stack_cas_castext_castextparser extends Parser\Basic {
 
 
 /**
- * A custom datastructure for skipping the annoying task of working with references to arrays. The only array in this structure is something we do not modify.
+ * A custom datastructure for skipping the annoying task of working with references to arrays. The only array in this structure is
+ * something we do not modify.
  */
 class stack_cas_castext_parsetreenode {
 
@@ -379,25 +392,25 @@ class stack_cas_castext_parsetreenode {
     public $mathmode = false;
 
     /**
-     * Converts the nested array form tree to parsetreenode-tree
+     * Converts the nested array form tree to parsetreenode-tree.
      */
-    public static function build_from_nested($parse_tree, $parent=null) {
+    public static function build_from_nested($parsetree, $parent=null) {
         $node = new stack_cas_castext_parsetreenode();
         $node->parent = $parent;
-        if (array_key_exists('mathmode', $parse_tree)) {
-            $node->mathmode = $parse_tree['mathmode'];
+        if (array_key_exists('mathmode', $parsetree)) {
+            $node->mathmode = $parsetree['mathmode'];
         }
-        switch ($parse_tree['_matchrule']) {
+        switch ($parsetree['_matchrule']) {
             case "block":
-                $node->params = $parse_tree['params'];
-                $node->content = $parse_tree['name'];
+                $node->params = $parsetree['params'];
+                $node->content = $parsetree['name'];
             case "castext":
-                if (array_key_exists('_matchrule', $parse_tree['item'])) {
-                    $node->first_child = stack_cas_castext_parsetreenode::build_from_nested($parse_tree['item'], $node);
+                if (array_key_exists('_matchrule', $parsetree['item'])) {
+                    $node->first_child = self::build_from_nested($parsetree['item'], $node);
                 } else {
                     $prev = null;
-                    foreach ($parse_tree['item'] as $sub_tree) {
-                        $n = stack_cas_castext_parsetreenode::build_from_nested($sub_tree, $node);
+                    foreach ($parsetree['item'] as $subtree) {
+                        $n = self::build_from_nested($subtree, $node);
                         if ($prev !== null) {
                             $n->previous_sibling = $prev;
                             $prev->next_sibling = $n;
@@ -407,16 +420,16 @@ class stack_cas_castext_parsetreenode {
                         $prev = $n;
                     }
                 }
-                $node->type = $parse_tree['_matchrule'];
+                $node->type = $parsetree['_matchrule'];
                 break;
             case "rawcasblock":
             case "texcasblock":
-                $node->type = $parse_tree['_matchrule'];
-                $node->content = $parse_tree['cascontent']['text'];
+                $node->type = $parsetree['_matchrule'];
+                $node->content = $parsetree['cascontent']['text'];
                 break;
             default:
                 $node->type = 'text';
-                $node->content = $parse_tree['text'];
+                $node->content = $parsetree['text'];
         }
         $node->normalize();
         return $node;
@@ -425,26 +438,26 @@ class stack_cas_castext_parsetreenode {
     /**
      * Combines adjacent text-nodes.
      */
-     public function normalize() {
-         if ($this->is_container() && $this->first_child !== null) {
-             $this->first_child->normalize();
-         }
-         $iter = $this;
-         while ($iter->type == 'text' && $iter->next_sibling !== null && $iter->next_sibling->type == 'text') {
-             $extra = $iter->next_sibling;
-             $iter->content .= $extra->content;
-             $iter->next_sibling = $extra->next_sibling;
-             if ($iter->next_sibling !== null) {
-                 $iter->next_sibling->previous_sibling = $this;
-             }
-             while ($iter->next_sibling !== null && !($iter->next_sibling->type == 'text' && $iter->type == 'text')) {
-                 $iter = $iter->next_sibling;
-                 if ($iter->is_container() && $iter->first_child !== null) {
-                     $iter->first_child->normalize();
-                 }
-             }
-         }
-     }
+    public function normalize() {
+        if ($this->is_container() && $this->first_child !== null) {
+            $this->first_child->normalize();
+        }
+        $iter = $this;
+        while ($iter->type == 'text' && $iter->next_sibling !== null && $iter->next_sibling->type == 'text') {
+            $extra = $iter->next_sibling;
+            $iter->content .= $extra->content;
+            $iter->next_sibling = $extra->next_sibling;
+            if ($iter->next_sibling !== null) {
+                $iter->next_sibling->previous_sibling = $this;
+            }
+            while ($iter->next_sibling !== null && !($iter->next_sibling->type == 'text' && $iter->type == 'text')) {
+                $iter = $iter->next_sibling;
+                if ($iter->is_container() && $iter->first_child !== null) {
+                    $iter->first_child->normalize();
+                }
+            }
+        }
+    }
 
     /**
      * Returns true if there could be somekind of a substructure.
@@ -459,10 +472,10 @@ class stack_cas_castext_parsetreenode {
     /**
      * Converts the node to a text node with the given content.
      */
-    public function convert_to_text($new_content) {
+    public function convert_to_text($newcontent) {
         $this->type = "text";
-        $this->content = $new_content;
-        // Clear other details just in case, makes dumping the var cleaner when debuging
+        $this->content = $newcontent;
+        // Clear other details just in case, makes dumping the var cleaner when debuging.
         $this->first_child = null;
         $this->params = array();
     }
@@ -482,7 +495,8 @@ class stack_cas_castext_parsetreenode {
     }
 
     /**
-     * Returns the value of a parameter, usefull for nodes of the block-type. You can also set the default value returned should such a parameter be missing.
+     * Returns the value of a parameter, usefull for nodes of the block-type. You can also set the default value returned should
+     * such a parameter be missing.
      */
     public function get_parameter($key, $default=null) {
         if (@array_key_exists($key, $this->params)) {
@@ -512,7 +526,8 @@ class stack_cas_castext_parsetreenode {
     }
 
     /**
-     * Destroys this node (and its children) and removes it from its parent. Should you wish to access the parent the parent-link of this node will work even after destruction.
+     * Destroys this node (and its children) and removes it from its parent. Should you wish to access the parent the parent-link
+     * of this node will work even after destruction.
      */
     public function destroy_node() {
         if ($this->parent->first_child === $this) {
@@ -563,7 +578,8 @@ class stack_cas_castext_parsetreenode {
     }
 
     /**
-     * Presents the node in string form, might not match perfectly to the original content as quotes and whitespace may have changed.
+     * Presents the node in string form, might not match perfectly to the original content as quotes and whitespace may have
+     * changed.
      */
     public function to_string() {
         $r = "";
@@ -587,7 +603,6 @@ class stack_cas_castext_parsetreenode {
                     $r .= $iterator->to_string();
                     $iterator = $iterator->next_sibling;
                 }
-
 
                 $r .= "[[/ " . $this->content . " ]]";
                 break;

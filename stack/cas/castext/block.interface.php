@@ -26,7 +26,8 @@
 abstract class stack_cas_castext_block {
 
     /**
-     * Nodes here are like DOM-nodes but not quite. The type is stack_cas_castext_parsetreenode, we use these nodes instead of arrays so that the references are simpler to handle.
+     * Nodes here are like DOM-nodes but not quite. The type is stack_cas_castext_parsetreenode, we use these nodes instead of
+     * arrays so that the references are simpler to handle.
      */
     private $node;
     private $session;
@@ -49,8 +50,9 @@ abstract class stack_cas_castext_block {
     public function __construct(&$node, &$session=null, $seed=null, $security='s', $syntax=true, $insertstars=0) {
         $this->node = $node;
 
-        if (!('s'===$security || 't'===$security)) {
-            throw new stack_exception('stack_cas_castext_block: security level, must be "s" or "t" only.  Got the following: '.$security);
+        if (!('s' === $security || 't' === $security)) {
+            throw new stack_exception('stack_cas_castext_block: security level, must be "s" or "t" only.  Got the following: '
+                    .$security);
         }
 
         if (!is_bool($syntax)) {
@@ -116,7 +118,7 @@ abstract class stack_cas_castext_block {
         $valid = true;
         $first = true;
         foreach ($this->validate_extract_attributes() as $casstring) {
-            $v = $casstring->get_valid($this->security,$this->syntax,$this->insertstars);
+            $v = $casstring->get_valid($this->security, $this->syntax, $this->insertstars);
             if (!$v) {
                 if ($first) {
                     $first = false;
