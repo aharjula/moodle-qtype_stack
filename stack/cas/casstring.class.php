@@ -453,7 +453,8 @@ class stack_cas_casstring {
      */
     private function validate($security='s', $syntax=true, $insertstars=0, $allowwords='') {
         if (!('s' === $security || 't' === $security)) {
-            throw new stack_exception('stack_cas_casstring: security level, must be "s" or "t" only.  Got the following: '.$security);
+            throw new stack_exception('stack_cas_casstring: security level, must be "s" or "t" only.  Got the following: '
+                    .$security);
         }
 
         if (!is_bool($syntax)) {
@@ -490,7 +491,7 @@ class stack_cas_casstring {
             return false;
         }
 
-        // Check for matching string delimiters. After removing the escaped string delimiters
+        // Check for matching string delimiters. After removing the escaped string delimiters.
         if (stack_utils::check_matching_pairs($cmd, '"') == false) {
             $this->errors .= stack_string('stackCas_MissingString');
             $this->answernote[] = 'MissingString';

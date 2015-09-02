@@ -253,20 +253,18 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 
     public function start_attempt(question_attempt_step $step, $variant) {
         // Work out the right seed to use.
-        if (!is_null($this->seed)) {
-            // Nasty hack, but if seed has already been set, then use that. This is
-            // used by the questiontestrun.php script to allow non-deployed
-            // variants to be browsed.
-        } else if (!$this->has_random_variants()) {
-            // Randomisation not used.
-            $this->seed = 1;
-        } else if (!empty($this->deployedseeds)) {
-            // Question has a fixed number of variants.
-            $this->seed = $this->deployedseeds[$variant - 1] + 0;
-            // Don't know why this is coming out as a string. + 0 converts to int.
-        } else {
-            // This question uses completely free randomisation.
-            $this->seed = $variant;
+        if (is_null($this->seed)) {
+            if (!$this->has_random_variants()) {
+                // Randomisation not used.
+                $this->seed = 1;
+            } else if (!empty($this->deployedseeds)) {
+                // Question has a fixed number of variants.
+                $this->seed = $this->deployedseeds[$variant - 1] + 0;
+                // Don't know why this is coming out as a string. + 0 converts to int.
+            } else {
+                // This question uses completely free randomisation.
+                $this->seed = $variant;
+            }
         }
         $step->set_qt_var('_seed', $this->seed);
 
@@ -381,7 +379,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
             if (is_a($this->step, 'question_attempt_step_read_only')) {
                 $data = $DB->get_records('question_attempt_step_data', array('attemptstepid' => $this->step->get_id()));
                 foreach ($data as $row) {
-                    if (strpos($row->name, "_isv_") === 0){
+                    if (strpos($row->name, "_isv_") === 0) {
                         $this->statevariables['instance'][substr($row->name, 5)] = $row->value;
                     }
                 }
