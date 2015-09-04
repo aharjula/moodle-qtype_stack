@@ -67,7 +67,7 @@ class stack_cas_text {
     private $syntax;
 
     /** @var stack_cas_castext_parsetreenode the root of the parse tree */
-    private $parse_tree_root = null;
+    private $parsetreeroot = null;
 
     /** @var array holds block-handlers for various parse_tree nodes */
     private $blocks = array();
@@ -181,8 +181,8 @@ class stack_cas_text {
                 $this->errors[] = stack_string('stackCas_MissingClosingHint');
             }
         }
-        $unknown_hints = stack_hints::check_hints_exist($this->trimmedcastext);
-        foreach ( $unknown_hints as $hint) {
+        $unknownhints = stack_hints::check_hints_exist($this->trimmedcastext);
+        foreach ($unknownhints as $hint) {
             $this->errors[] = stack_string('stack_hint_missing', $hint);
             $this->valid = false;
         }
@@ -231,32 +231,32 @@ class stack_cas_text {
 
         // Perform block and casstring validation.
         $parser = new stack_cas_castext_castextparser($this->trimmedcastext);
-        $validation_session = new stack_cas_session(array(), null, $this->seed);
-        $array_form = $parser->match_castext();
-        $array_form = stack_cas_castext_castextparser::normalize($array_form);
-        $array_form = stack_cas_castext_castextparser::block_conversion($array_form);
+        $validationsession = new stack_cas_session(array(), null, $this->seed);
+        $arrayform = $parser->match_castext();
+        $arrayform = stack_cas_castext_castextparser::normalize($arrayform);
+        $arrayform = stack_cas_castext_castextparser::block_conversion($arrayform);
 
-        $validation_parse_tree_root = stack_cas_castext_parsetreenode::build_from_nested($array_form);
+        $validationparsetreeroot = stack_cas_castext_parsetreenode::build_from_nested($arrayform);
 
-        $this->valid = $this->validation_recursion($validation_parse_tree_root, $validation_session) && $this->valid;
+        $this->valid = $this->validation_recursion($validationparsetreeroot, $validationsession) && $this->valid;
 
-        if (array_key_exists('errors', $array_form)) {
+        if (array_key_exists('errors', $arrayform)) {
             $this->valid = false;
-            $this->errors[] = 'PARSE ERROR: '. $array_form['errors'];
+            $this->errors[] = 'PARSE ERROR: '. $arrayform['errors'];
         }
 
         return $this->valid;
     }
 
 
-    private function validation_recursion($node,$session) {
+    private function validation_recursion($node, $session) {
         $valid = true;
         switch ($node->type) {
             case 'castext':
-                $iter = $node->first_child;
+                $iter = $node->firstchild;
                 while ($iter !== null) {
                     $valid = $this->validation_recursion($iter, $session) && $valid;
-                    $iter = $iter->next_sibling;
+                    $iter = $iter->nextsibling;
                 }
                 break;
             case 'block':
@@ -290,10 +290,10 @@ class stack_cas_text {
                 }
                 if ($block != null) {
                     $valid = $block->validate($this->errors) && $valid;
-                    $iter = $node->first_child;
+                    $iter = $node->firstchild;
                     while ($iter !== null) {
                          $valid = $this->validation_recursion($iter, $session) && $valid;
-                         $iter = $iter->next_sibling;
+                         $iter = $iter->nextsibling;
                     }
                 }
                 break;
@@ -312,14 +312,14 @@ class stack_cas_text {
     }
 
 
-    private function first_pass_recursion(&$node, $condition_stack) {
-        $block_child_evaluation = false;
+    private function first_pass_recursion(&$node, $conditionstack) {
+        $blockchildevaluation = false;
         switch ($node->type) {
             case 'castext':
-                $iter = $node->first_child;
+                $iter = $node->firstchild;
                 while ($iter !== null) {
-                    $this->first_pass_recursion($iter, $condition_stack);
-                    $iter = $iter->next_sibling;
+                    $this->first_pass_recursion($iter, $conditionstack);
+                    $iter = $iter->nextsibling;
                 }
                 break;
             case 'block':
@@ -348,32 +348,32 @@ class stack_cas_text {
                     default:
                         throw new stack_exception('stack_cas_text: UNKNOWN NODE '.$node->get_content());
                 }
-                $block->extract_attributes($this->session, $condition_stack);
+                $block->extract_attributes($this->session, $conditionstack);
                 $this->blocks[] = $block;
-                $new_stack = $block->content_evaluation_context($condition_stack);
-                if ($new_stack === false) {
-                    $block_child_evaluation = true;
+                $newstack = $block->content_evaluation_context($conditionstack);
+                if ($newstack === false) {
+                    $blockchildevaluation = true;
                 } else {
-                    $condition_stack = $new_stack;
+                    $conditionstack = $newstack;
                 }
-                if (!$block_child_evaluation) {
-                    $iter = $node->first_child;
+                if (!$blockchildevaluation) {
+                    $iter = $node->firstchild;
                     while ($iter !== null) {
-                        $this->first_pass_recursion($iter, $condition_stack);
-                        $iter = $iter->next_sibling;
+                        $this->first_pass_recursion($iter, $conditionstack);
+                        $iter = $iter->nextsibling;
                     }
                 }
                 break;
             case 'rawcasblock':
                 $block = new stack_cas_castext_raw($node, $this->session, $this->seed, $this->security, $this->syntax,
                         $this->insertstars);
-                $block->extract_attributes($this->session, $condition_stack);
+                $block->extract_attributes($this->session, $conditionstack);
                 $this->blocks[] = $block;
                 break;
             case 'texcasblock':
                 $block = new stack_cas_castext_latex($node, $this->session, $this->seed, $this->security, $this->syntax,
                         $this->insertstars);
-                $block->extract_attributes($this->session, $condition_stack);
+                $block->extract_attributes($this->session, $conditionstack);
                 $this->blocks[] = $block;
                 break;
         }
@@ -384,20 +384,20 @@ class stack_cas_text {
      * This function actually evaluates the castext.
      */
     private function instantiate() {
-        // Initial pass
+        // Initial pass.
         if (stack_cas_castext_castextparser::castext_parsing_required($this->trimmedcastext)) {
             if ($this->session == null) {
                 $this->session = new stack_cas_session(array(), null, $this->seed);
             }
             $parser = new stack_cas_castext_castextparser($this->trimmedcastext);
-            $array_form = $parser->match_castext();
-            $array_form = stack_cas_castext_castextparser::normalize($array_form);
-            $array_form = stack_cas_castext_castextparser::block_conversion($array_form);
-            $this->parse_tree_root = stack_cas_castext_parsetreenode::build_from_nested($array_form);
-            $this->first_pass_recursion($this->parse_tree_root, array());
+            $arrayform = $parser->match_castext();
+            $arrayform = stack_cas_castext_castextparser::normalize($arrayform);
+            $arrayform = stack_cas_castext_castextparser::block_conversion($arrayform);
+            $this->parsetreeroot = stack_cas_castext_parsetreenode::build_from_nested($arrayform);
+            $this->first_pass_recursion($this->parsetreeroot, array());
         }
 
-        if (null!=$this->session) {
+        if (null != $this->session) {
             if (!$this->session->get_valid()) {
                 $this->valid = false;
             }
@@ -413,26 +413,26 @@ class stack_cas_text {
         }
 
         // Handle blocks.
-        $requires_rerun = false;
+        $requiresrerun = false;
         foreach (array_reverse($this->blocks) as $block) {
-            $requires_rerun = $block->process_content($this->session) || $requires_rerun;
+            $requiresrerun = $block->process_content($this->session) || $requiresrerun;
         }
 
-        while ($requires_rerun) {
+        while ($requiresrerun) {
             $this->blocks = array();
 
-            $this->trimmedcastext = $this->parse_tree_root->to_string();
+            $this->trimmedcastext = $this->parsetreeroot->to_string();
 
             $parser = new stack_cas_castext_castextparser($this->trimmedcastext);
-            $array_form = $parser->match_castext();
-            $array_form = stack_cas_castext_castextparser::normalize($array_form);
-            $array_form = stack_cas_castext_castextparser::block_conversion($array_form);
-            $this->parse_tree_root = stack_cas_castext_parsetreenode::build_from_nested($array_form);
-            $this->first_pass_recursion($this->parse_tree_root, array());
+            $arrayform = $parser->match_castext();
+            $arrayform = stack_cas_castext_castextparser::normalize($arrayform);
+            $arrayform = stack_cas_castext_castextparser::block_conversion($arrayform);
+            $this->parsetreeroot = stack_cas_castext_parsetreenode::build_from_nested($arrayform);
+            $this->first_pass_recursion($this->parsetreeroot, array());
             $this->session->instantiate();
-            $requires_rerun = false;
+            $requiresrerun = false;
             foreach (array_reverse($this->blocks) as $block) {
-                $requires_rerun = $block->process_content($this->session) || $requires_rerun;
+                $requiresrerun = $block->process_content($this->session) || $requiresrerun;
             }
         }
 
@@ -440,8 +440,8 @@ class stack_cas_text {
             $block->clear();
         }
 
-        if (trim($this->trimmedcastext) !== '' && $this->parse_tree_root !== null) {
-            $this->trimmedcastext = $this->parse_tree_root->to_string();
+        if (trim($this->trimmedcastext) !== '' && $this->parsetreeroot !== null) {
+            $this->trimmedcastext = $this->parsetreeroot->to_string();
         }
 
         // Deals with hints.

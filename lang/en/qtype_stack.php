@@ -581,7 +581,10 @@ $string['stackBlock_externalblocksdisabled'] = 'External blocks have not been en
 $string['stackBlock_eternalLatexNotEnabled'] = 'LaTeX-type has not been enabled in this stack installation.';
 $string['stackBlock_eternalMustHaveType']    = 'External blocks must define a type attribute, and that type must have a known and enabled handler.';
 $string['stackBlock_missmatch']              = 'has no match. ';
-
+$string['stackBlock_else_out_of_an_if']      = '"else" cannot exist outside an if block.';
+$string['stackBlock_elseif_out_of_an_if']    = '"else-if" cannot exist outside an if block.';
+$string['stackBlock_multiple_else']          = 'Multiple else branches in an if block.';
+$string['stackBlock_elseif_after_else']      = '"else-if" after an "else" in an if block.';
 
 $string['unrecognisedfactstags']             = 'The following facts tag(s) are not recognized: {$a->tags}.';
 $string['stackHintOld']                      = 'The CASText has old-style hint tags. These should now be in the form <pre>[[facts:tag]]</pre>';

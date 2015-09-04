@@ -96,6 +96,7 @@ class stack_cas_castext_castextparser extends Parser\Basic {
                 $r .= "[[/ " . $parsetree['name'] . " ]]";
 
                 break;
+            case "pseudoblock":
             case "ioblock":
             case "rawcasblock":
             case "texcasblock":
@@ -255,6 +256,34 @@ class stack_cas_castext_castextparser extends Parser\Basic {
                     }
                 }
 
+                // Special pseudo blocks 'else' and 'else-if' need to be taken from the flow.
+                $filteredstartblocks = array();
+                foreach ($startblocks as $start) {
+                    if ($parsetree['item'][$start]['name'][1]['text'] == 'else' ||
+                            $parsetree['item'][$start]['name'][1]['text'] == 'else-if') {
+                        $parsetree['item'][$start]['_matchrule'] = "pseudoblock";
+                        $parsetree['item'][$start]['name'] = $parsetree['item'][$start]['name'][1]['text'];
+
+                        $params = array();
+
+                        if (array_key_exists('params', $parsetree['item'][$start])) {
+                            if (array_key_exists('_matchrule', $parsetree['item'][$start]['params'])) {
+                                $params[$parsetree['item'][$start]['params']['key']['text']] =
+                                        $parsetree['item'][$start]['params']['value']['text'];
+                            } else {
+                                foreach ($parsetree['item'][$start]['params'] as $param) {
+                                    $params[$param['key']['text']] = $param['value']['text'];
+                                }
+                            }
+                        }
+                        $parsetree['item'][$start]['params'] = $params;
+                        $parsetree['item'][$start]['item'] = array();
+                    } else {
+                        $filteredstartblocks[] = $start;
+                    }
+                }
+                $startblocks = $filteredstartblocks;
+
                 $i = 0;
                 while ($i < count($endblocks)) {
                     $endcandidateindex = $endblocks[$i];
@@ -324,18 +353,54 @@ class stack_cas_castext_castextparser extends Parser\Basic {
         return $parsetree;
     }
 
-    private static function extract_block_missmatch($parsetree) {
+    private static function extract_block_missmatch($parsetree, $parent = null) {
         $err = array();
         switch ($parsetree['_matchrule']) {
             case "castext":
             case "block":
                 if (array_key_exists('_matchrule', $parsetree['item'])) {
-                    $err = self::extract_block_missmatch($parsetree['item']);
+                    $err = self::extract_block_missmatch($parsetree['item'], $parsetree['name']);
                 } else {
                     $err = array();
+                    $pseudos = array();
                     foreach ($parsetree['item'] as $subtree) {
-                        $err = array_merge($err, self::extract_block_missmatch($subtree));
+                        if ($subtree['_matchrule'] == 'pseudoblock') {
+                            $pseudos[] = $subtree['name'];
+                        }
+                        $err = array_merge($err, self::extract_block_missmatch($subtree, $parsetree['name']));
                     }
+                    if ($parsetree['name'] == 'if') {
+                        $elsefound = false;
+                        $elseifafterelse = false;
+                        $multipleelse = false;
+                        foreach ($pseudos as $pseudo) {
+                            if ($pseudo == 'else') {
+                                if ($elsefound) {
+                                    $multipleelse = true;
+                                } else {
+                                    $elsefound = true;
+                                }
+                            }
+                            if ($pseudo == 'else-if') {
+                                if ($elsefound) {
+                                    $elseifafterelse = true;
+                                }
+                            }
+                        }
+                        if ($multipleelse) {
+                            $err[] = stack_string('stackBlock_multiple_else');
+                        }
+                        if ($elseifafterelse) {
+                            $err[] = stack_string('stackBlock_elseif_after_else');
+                        }
+                    }
+                }
+                break;
+            case "pseudoblock":
+                if ($parsetree['name'] == 'else' && $parent !== 'if') {
+                    $err[] = stack_string('stackBlock_else_out_of_an_if');
+                } else if ($parsetree['name'] == 'else-if' && $parent !== 'if') {
+                    $err[] = stack_string('stackBlock_elseif_out_of_an_if');
                 }
                 break;
             case "blockopen":
@@ -382,9 +447,9 @@ class stack_cas_castext_castextparser extends Parser\Basic {
 class stack_cas_castext_parsetreenode {
 
     public $parent = null;
-    public $next_sibling = null;
-    public $previous_sibling = null;
-    public $first_child = null;
+    public $nextsibling = null;
+    public $previoussibling = null;
+    public $firstchild = null;
     // There are five types, castext is the root, blocks are containers and text, rawcasblock and texcasblock are root nodes.
     public $type = "castext";
     private $params = null;
@@ -394,7 +459,7 @@ class stack_cas_castext_parsetreenode {
     /**
      * Converts the nested array form tree to parsetreenode-tree.
      */
-    public static function build_from_nested($parsetree, $parent=null) {
+    public static function build_from_nested($parsetree, $parent = null, $first = true) {
         $node = new stack_cas_castext_parsetreenode();
         $node->parent = $parent;
         if (array_key_exists('mathmode', $parsetree)) {
@@ -406,20 +471,25 @@ class stack_cas_castext_parsetreenode {
                 $node->content = $parsetree['name'];
             case "castext":
                 if (array_key_exists('_matchrule', $parsetree['item'])) {
-                    $node->first_child = self::build_from_nested($parsetree['item'], $node);
+                    $node->firstchild = self::build_from_nested($parsetree['item'], $node, false);
                 } else {
                     $prev = null;
                     foreach ($parsetree['item'] as $subtree) {
-                        $n = self::build_from_nested($subtree, $node);
+                        $n = self::build_from_nested($subtree, $node, false);
                         if ($prev !== null) {
-                            $n->previous_sibling = $prev;
-                            $prev->next_sibling = $n;
+                            $n->previoussibling = $prev;
+                            $prev->nextsibling = $n;
                         } else {
-                            $node->first_child = $n;
+                            $node->firstchild = $n;
                         }
                         $prev = $n;
                     }
                 }
+                $node->type = $parsetree['_matchrule'];
+                break;
+            case "pseudoblock":
+                $node->params = $parsetree['params'];
+                $node->content = $parsetree['name'];
                 $node->type = $parsetree['_matchrule'];
                 break;
             case "rawcasblock":
@@ -432,28 +502,100 @@ class stack_cas_castext_parsetreenode {
                 $node->content = $parsetree['text'];
         }
         $node->normalize();
+        if ($first) {
+            $node->fix_pseudo_blocks();
+        }
         return $node;
+    }
+
+    /**
+     * Rewrites the tree so that we can get rid of the 'else' and 'else-if' blocks.
+     */
+    private function fix_pseudo_blocks() {
+        $iter = $this;
+        while ($iter !== null) {
+            if ($iter->is_container() && $iter->firstchild !== null) {
+                $iter->firstchild->fix_pseudo_blocks();
+            }
+            if ($iter->type == 'block' && $iter->content == 'if') {
+                $condition = $iter->get_parameter('test', 'false');
+                $condition = '(not ('.$condition.'))';
+
+                $i = $iter->firstchild;
+                while ($i !== null) {
+                    if ($i->type == 'pseudoblock' && $i->content == 'else') {
+                        if ($i->previoussibling !== null) {
+                            $i->previoussibling->nextsibling = null;
+                        }
+                        $i->params["test"] = $condition;
+                        $i->type = 'block';
+                        $i->content = 'if';
+                        $i->parent = $iter->parent;
+                        $i->firstchild = $i->nextsibling;
+                        $i->firstchild->previoussibling = null;
+                        $i->nextsibling = $iter->nextsibling;
+                        $i->previoussibling = $iter;
+                        $iter->nextsibling = $i;
+                        $iter = $i;
+                        $ii = $i->firstchild;
+                        while ($ii !== null) {
+                            $ii->parent = $i;
+                            $ii = $ii->nextsibling;
+                        }
+                        $i = null;
+                    } else if ($i->type == 'pseudoblock' && $i->content == 'else-if') {
+                        if ($i->previoussibling !== null) {
+                            $i->previoussibling->nextsibling = null;
+                        }
+                        $additionalcondition = $i->get_parameter('test', 'false');
+                        $i->params["test"] = $condition.' and ('.$additionalcondition.')';
+                        $condition = $condition.' and (not ('.$additionalcondition.'))';
+                        $i->type = 'block';
+                        $i->content = 'if';
+                        $i->parent = $iter->parent;
+                        $i->firstchild = $i->nextsibling;
+                        $i->firstchild->previoussibling = null;
+                        $i->nextsibling = $iter->nextsibling;
+                        $i->previoussibling = $iter;
+                        $iter->nextsibling = $i;
+                        $iter = $i;
+                        $ii = $i->firstchild;
+                        while ($ii !== null) {
+                            if ($ii->type == 'pseudoblock' && ($ii->content == 'else' || $ii->content == 'else-if')) {
+                                $i = $ii;
+                                break;
+                            }
+                            $ii->parent = $i;
+                            $ii = $ii->nextsibling;
+                        }
+                    } else {
+                        $i = $i->nextsibling;
+                    }
+                }
+            }
+            $iter = $iter->nextsibling;
+        }
     }
 
     /**
      * Combines adjacent text-nodes.
      */
     public function normalize() {
-        if ($this->is_container() && $this->first_child !== null) {
-            $this->first_child->normalize();
+        if ($this->is_container() && $this->firstchild !== null) {
+            $this->firstchild->normalize();
         }
         $iter = $this;
-        while ($iter->type == 'text' && $iter->next_sibling !== null && $iter->next_sibling->type == 'text') {
-            $extra = $iter->next_sibling;
+        while ($iter->type == 'text' && $iter->nextsibling !== null && $iter->nextsibling->type == 'text') {
+            $extra = $iter->nextsibling;
             $iter->content .= $extra->content;
-            $iter->next_sibling = $extra->next_sibling;
-            if ($iter->next_sibling !== null) {
-                $iter->next_sibling->previous_sibling = $this;
+            $iter->nextsibling = $extra->nextsibling;
+            if ($iter->nextsibling !== null) {
+                $iter->nextsibling->previoussibling = $this;
             }
-            while ($iter->next_sibling !== null && !($iter->next_sibling->type == 'text' && $iter->type == 'text')) {
-                $iter = $iter->next_sibling;
-                if ($iter->is_container() && $iter->first_child !== null) {
-                    $iter->first_child->normalize();
+            while ($iter->nextsibling !== null && !($iter->nextsibling->type == 'text' && $iter->type == 'text')) {
+                $iter = $iter->nextsibling;
+                if ($iter->is_container() && $iter->firstchild !== null) {
+                    $iter->firstchild->normalize();
                 }
             }
         }
@@ -476,7 +618,7 @@ class stack_cas_castext_parsetreenode {
         $this->type = "text";
         $this->content = $newcontent;
         // Clear other details just in case, makes dumping the var cleaner when debuging.
-        $this->first_child = null;
+        $this->firstchild = null;
         $this->params = array();
     }
 
@@ -530,14 +672,14 @@ class stack_cas_castext_parsetreenode {
      * of this node will work even after destruction.
      */
     public function destroy_node() {
-        if ($this->parent->first_child === $this) {
-            $this->parent->first_child = $this->next_sibling;
+        if ($this->parent->firstchild === $this) {
+            $this->parent->firstchild = $this->nextsibling;
         }
-        if ($this->next_sibling !== null) {
-            $this->next_sibling->previous_sibling = $this->previous_sibling;
+        if ($this->nextsibling !== null) {
+            $this->nextsibling->previoussibling = $this->previoussibling;
         }
-        if ($this->previous_sibling !== null) {
-            $this->previous_sibling->next_sibling = $this->next_sibling;
+        if ($this->previoussibling !== null) {
+            $this->previoussibling->nextsibling = $this->nextsibling;
         }
     }
 
@@ -545,34 +687,34 @@ class stack_cas_castext_parsetreenode {
      * Destroys this node but promotes its children to its place. Perfect for removing if-blocks and other wrappers.
      */
     public function destroy_node_promote_children() {
-        if ($this->first_child !== null) {
-            $next = $this->next_sibling;
-            $iter = $this->first_child;
-            if ($this->parent->first_child === $this) {
-                $this->parent->first_child = $iter;
+        if ($this->firstchild !== null) {
+            $next = $this->nextsibling;
+            $iter = $this->firstchild;
+            if ($this->parent->firstchild === $this) {
+                $this->parent->firstchild = $iter;
             }
-            if ($this->previous_sibling !== null) {
-                $this->previous_sibling->next_sibling = $iter;
+            if ($this->previoussibling !== null) {
+                $this->previoussibling->nextsibling = $iter;
             }
-            $iter->previous_sibling = $this->previous_sibling;
+            $iter->previoussibling = $this->previoussibling;
             $iter->parent = $this->parent;
-            while ($iter->next_sibling !== null) {
+            while ($iter->nextsibling !== null) {
                 $iter->parent = $this->parent;
-                $iter = $iter->next_sibling;
+                $iter = $iter->nextsibling;
             }
             $iter->parent = $this->parent;
-            $iter->next_sibling = $next;
+            $iter->nextsibling = $next;
             if ($next !== null) {
-                $next->previous_sibling = $iter;
+                $next->previoussibling = $iter;
             }
         } else {
-            if ($this->next_sibling !== null && $this->previous_sibling !== null) {
-                $this->previous_sibling->next_sibling = $this->next_sibling;
-                $this->next_sibling->previous_sibling = $this->previous_sibling;
-            } else if ($this->previous_sibling !== null) {
-                $this->previous_sibling->next_sibling = null;
+            if ($this->nextsibling !== null && $this->previoussibling !== null) {
+                $this->previoussibling->nextsibling = $this->nextsibling;
+                $this->nextsibling->previoussibling = $this->previoussibling;
+            } else if ($this->previoussibling !== null) {
+                $this->previoussibling->nextsibling = null;
             } else {
-                $this->parent->first_child = null;
+                $this->parent->firstchild = null;
             }
         }
     }
@@ -598,19 +740,19 @@ class stack_cas_castext_parsetreenode {
                 }
                 $r .= " ]]";
 
-                $iterator = $this->first_child;
+                $iterator = $this->firstchild;
                 while ($iterator !== null) {
                     $r .= $iterator->to_string();
-                    $iterator = $iterator->next_sibling;
+                    $iterator = $iterator->nextsibling;
                 }
 
                 $r .= "[[/ " . $this->content . " ]]";
                 break;
             case "castext":
-                $iterator = $this->first_child;
+                $iterator = $this->firstchild;
                 while ($iterator !== null) {
                     $r .= $iterator->to_string();
-                    $iterator = $iterator->next_sibling;
+                    $iterator = $iterator->nextsibling;
                 }
                 break;
             case "text":

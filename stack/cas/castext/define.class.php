@@ -51,7 +51,7 @@ class stack_cas_castext_define extends stack_cas_castext_block {
         $r = array();
         foreach ($this->get_node()->get_parameters() as $key => $value) {
             $cs = new stack_cas_casstring($value);
-            // must set validation settings before set_key..
+            // Must set validation settings before set_key.
             $cs->get_valid($this->security, $this->syntax, $this->insertstars);
             $cs->set_key($key, true);
             $r[] = $cs;

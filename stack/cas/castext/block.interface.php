@@ -101,7 +101,7 @@ abstract class stack_cas_castext_block {
      * Have left in the tree for multiple pass processing. This is specially meant for the define block.
      */
     public function clear() {
-        // Does nothing in most cases
+        // Does nothing in most cases.
     }
 
     /**
