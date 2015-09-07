@@ -102,13 +102,17 @@ class stack_cas_text_test extends qtype_stack_testcase {
     }
 
     public function test_if_block() {
-        $a1 = array('a:true', 'b:is(1>2)');
+        $a1 = array('a:true', 'b:is(1>2)', 'c:false');
 
         $cases = array(
                 array('[[ if test="a" ]]ok[[/ if ]]', $a1, true, "ok"),
                 array('[[ if test="b" ]]ok[[/ if ]]', $a1, true, ""),
+                array('[[ if test="b" ]]ok[[else]]OK[[/ if ]]', $a1, true, "OK"),
+                array('[[ if test="b" ]]ok[[elif test="c"]]Ok[[else]]OK[[/ if ]]', $a1, true, "OK"),
+                array('[[ if test="b" ]]ok[[elif test="false"]]oK[[elif test="a"]]Ok[[else]]OK[[/ if ]]', $a1, true, "Ok"),
                 array('[[ if test="a" ]][[ if test="a" ]]ok[[/ if ]][[/ if ]]', $a1, true, "ok"),
                 array('[[ if test="a" ]][[ if test="b" ]]ok[[/ if ]][[/ if ]]', $a1, true, ""),
+                array('[[ if test="a" ]][[ if test="b" ]]ok[[else]]OK[[/ if ]][[/ if ]]', $a1, true, "OK"),
         );
 
         foreach ($cases as $case) {
@@ -128,7 +132,21 @@ class stack_cas_text_test extends qtype_stack_testcase {
         $ct = new stack_cas_text($c, $session);
         $ct->get_display_castext();
         $this->assertFalse($ct->get_valid());
-        $this->assertEquals('<span class="error">CASText failed validation. </span> If-block needs a test attribute. ', $ct->get_errors(false));
+        $this->assertEquals('<span class="error">CASText failed validation. </span> If-block needs a test attribute. ',
+                $ct->get_errors(false));
+
+        $c = '[[ if test="a" ]][[else]]a[[elif test="b"]]b[[/ if ]]';
+        $ct = new stack_cas_text($c, $session);
+        $ct->get_display_castext();
+        $this->assertFalse($ct->get_valid());
+        $this->assertEquals('<span class="error">CASText failed validation. </span> PARSE ERROR: "elif" after an "else" in an if block.', $ct->get_errors(false));
+
+        $c = '[[ if test="a" ]][[else]]a[[else]]b[[/ if ]]';
+        $ct = new stack_cas_text($c, $session);
+        $ct->get_display_castext();
+        $this->assertFalse($ct->get_valid());
+        $this->assertEquals('<span class="error">CASText failed validation. </span> PARSE ERROR: Multiple else branches in an if block.', $ct->get_errors(false));
+
     }
 
     public function test_broken_block_error() {

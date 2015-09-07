@@ -34,13 +34,24 @@ The common **if** statement is written as:
     The expression seems to be true.
     [[/ if ]]
 
-For example,
+The **if** block uses a special syntax expansion that provides it a way to handle **else** cases. For example,
 
     [[ if test='oddp(rand(5))' ]]
     This is an odd block!
+    [[ else ]]
+    This is an even block!
     [[/ if]]
 
-There is no else or else-if functionality as they would make the syntax rather difficult to evaluate.
+There is an *else if* type of structure using **elif** (Python coders won the syntax selection vote),
+
+    [[ if test='oddp(var)' ]]
+    This is an odd block!
+    [[ elif test='is(var=0)' ]]
+    It might be even but it is also zero.
+    [[ else ]]
+    This is an even block!
+    [[/ if]]
+
 
 ## Foreach loop ##
 

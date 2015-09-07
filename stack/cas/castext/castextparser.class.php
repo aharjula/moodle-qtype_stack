@@ -256,11 +256,11 @@ class stack_cas_castext_castextparser extends Parser\Basic {
                     }
                 }
 
-                // Special pseudo blocks 'else' and 'else-if' need to be taken from the flow.
+                // Special pseudo blocks 'else' and 'elif' need to be taken from the flow.
                 $filteredstartblocks = array();
                 foreach ($startblocks as $start) {
                     if ($parsetree['item'][$start]['name'][1]['text'] == 'else' ||
-                            $parsetree['item'][$start]['name'][1]['text'] == 'else-if') {
+                            $parsetree['item'][$start]['name'][1]['text'] == 'elif') {
                         $parsetree['item'][$start]['_matchrule'] = "pseudoblock";
                         $parsetree['item'][$start]['name'] = $parsetree['item'][$start]['name'][1]['text'];
 
@@ -381,7 +381,7 @@ class stack_cas_castext_castextparser extends Parser\Basic {
                                     $elsefound = true;
                                 }
                             }
-                            if ($pseudo == 'else-if') {
+                            if ($pseudo == 'elif') {
                                 if ($elsefound) {
                                     $elseifafterelse = true;
                                 }
@@ -391,7 +391,7 @@ class stack_cas_castext_castextparser extends Parser\Basic {
                             $err[] = stack_string('stackBlock_multiple_else');
                         }
                         if ($elseifafterelse) {
-                            $err[] = stack_string('stackBlock_elseif_after_else');
+                            $err[] = stack_string('stackBlock_elif_after_else');
                         }
                     }
                 }
@@ -399,8 +399,8 @@ class stack_cas_castext_castextparser extends Parser\Basic {
             case "pseudoblock":
                 if ($parsetree['name'] == 'else' && $parent !== 'if') {
                     $err[] = stack_string('stackBlock_else_out_of_an_if');
-                } else if ($parsetree['name'] == 'else-if' && $parent !== 'if') {
-                    $err[] = stack_string('stackBlock_elseif_out_of_an_if');
+                } else if ($parsetree['name'] == 'elif' && $parent !== 'if') {
+                    $err[] = stack_string('stackBlock_elif_out_of_an_if');
                 }
                 break;
             case "blockopen":
@@ -1383,7 +1383,7 @@ class stack_cas_castext_parsetreenode {
     }
 
     /**
-     * Rewrites the tree so that we can get rid of the 'else' and 'else-if' blocks.
+     * Rewrites the tree so that we can get rid of the 'else' and 'elif' blocks.
      */
     private function fix_pseudo_blocks() {
         $iter = $this;
@@ -1417,7 +1417,7 @@ class stack_cas_castext_parsetreenode {
                             $ii = $ii->nextsibling;
                         }
                         $i = null;
-                    } else if ($i->type == 'pseudoblock' && $i->content == 'else-if') {
+                    } else if ($i->type == 'pseudoblock' && $i->content == 'elif') {
                         if ($i->previoussibling !== null) {
                             $i->previoussibling->nextsibling = null;
                         }
@@ -1435,7 +1435,7 @@ class stack_cas_castext_parsetreenode {
                         $iter = $i;
                         $ii = $i->firstchild;
                         while ($ii !== null) {
-                            if ($ii->type == 'pseudoblock' && ($ii->content == 'else' || $ii->content == 'else-if')) {
+                            if ($ii->type == 'pseudoblock' && ($ii->content == 'else' || $ii->content == 'elif')) {
                                 $i = $ii;
                                 break;
                             }
@@ -1628,6 +1628,20 @@ class stack_cas_castext_parsetreenode {
                     $r .= $iterator->to_string();
                     $iterator = $iterator->nextsibling;
                 }
+                break;
+            case "pseudoblock":
+                $r .= "[[ " . $this->content;
+                if (count($this->params) > 0) {
+                    foreach ($this->params as $key => $value) {
+                        $r .= " $key=";
+                        if (strpos($value, '"') === false) {
+                            $r .= '"' . $value . '"';
+                        } else {
+                            $r .= "'$value'";
+                        }
+                    }
+                }
+                $r .= " ]]";
                 break;
             case "text":
                 return $this->content;

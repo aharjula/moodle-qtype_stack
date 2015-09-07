@@ -304,5 +304,32 @@ class stack_cas_castext_parser_test extends qtype_stack_testcase {
         $this->assertEquals('[[ quotes '."a=\"a\" b=\"b\" c='\"c\"'".' ]]blaah[[/ quotes ]]', $parsed['tree_form']->to_string());
     }
 
+    /**
+     * Special pseudoblocks 'else' and 'elif', does the tree transformation work?
+     */
+    public function test_fix_pseudoblocks() {
+        $raw = '[[ if test="a" ]]1[[ elif test="b" ]]2[[ else ]][[ if test="c"]]3[[else]]4[[/if]][[/ if ]]';
+        $parsed = $this->basic_parse_and_actions($raw);
+        // String check against parser->to_string. The missing spaces should appear in the closing 'if'.
+        $this->assertEquals('[[ if test="a" ]]1[[ elif test="b" ]]2[[ else ]][[ if test="c" ]]3[[else]]4[[/ if ]][[/ if ]]',
+                $parsed['to_string']);
+        // String check against node->to_string. The conversion to the tree-form shoudl have rewriten the elses as new ifs.
+        $this->assertEquals('[[ if test="a" ]]1[[/ if ]][[ if test="(not (a)) and (b)" ]]2[[/ if ]][[ if test="(not (a)) and (not (b))" ]][[ if test="c" ]]3[[/ if ]][[ if test="(not (c))" ]]4[[/ if ]][[/ if ]]', $parsed['tree_form']->to_string());
+    }
+
+    /**
+     * Special pseudoblocks 'else' and 'elif', does the tree transformation work? In odd case?
+     */
+    public function test_fix_pseudoblocks_err() {
+        $raw = '[[ fi test="a" ]]1[[ elif test="b" ]]2[[ else ]][[ if test="c"]]3[[else]]4[[/if]][[/ fi ]]';
+        $parsed = $this->basic_parse_and_actions($raw);
+        // String check against parser->to_string. The missing spaces should appear in the closing 'if'.
+        $this->assertEquals('[[ fi test="a" ]]1[[ elif test="b" ]]2[[ else ]][[ if test="c" ]]3[[else]]4[[/ if ]][[/ fi ]]',
+                $parsed['to_string']);
+        // String check against node->to_string. The conversion to the tree-form shoudl have rewriten the elses as new ifs.
+        $this->assertEquals('[[ fi test="a" ]]1[[ elif test="b" ]]2[[ else ]][[ if test="c" ]]3[[/ if ]][[ if test="(not (c))" ]]4[[/ if ]][[/ fi ]]', $parsed['tree_form']->to_string());
+    }
+
+
 
 }
