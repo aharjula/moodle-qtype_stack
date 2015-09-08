@@ -421,7 +421,7 @@ class qtype_stack_edit_form extends question_edit_form {
         // Algebraic Equivalence should be the default test, and first on the list.
         // This does not come first in the alphabet of all languages.
         $default     = 'AlgEquiv';
-        $default_str = stack_string($answertests[$default]);
+        $defaultstr = stack_string($answertests[$default]);
         unset($answertests[$default]);
 
         $this->answertestchoices = array();
@@ -429,7 +429,7 @@ class qtype_stack_edit_form extends question_edit_form {
             $this->answertestchoices[$test] = stack_string($string);
         }
         stack_utils::sort_array($this->answertestchoices);
-        $this->answertestchoices = array_merge(array($default => $default_str),
+        $this->answertestchoices = array_merge(array($default => $defaultstr),
                 $this->answertestchoices);
 
         // Prepare score mode choices.
@@ -989,14 +989,21 @@ class qtype_stack_edit_form extends question_edit_form {
         // and implod (' ', ...) any arrays that are non-empty. This makes our
         // rather complex validation easier to implement.
 
+        // 0) For state-variable reference validation we need to know which have been defined.
+        $statevariabledefinitions = new stack_cas_keyval($fromform['variabledefinitions'], $this->options, $this->seed, 't');
+        $statevariabledefinitions = $statevariabledefinitions->get_state_references();
+
         // 1) Validate all the fixed question fields.
         // Question variables.
-        $errors = $this->validate_cas_keyval($errors, $fromform['variabledefinitions'], 'variabledefinitions');
-        $errors = $this->validate_cas_keyval($errors, $fromform['questionvariables'], 'questionvariables');
+        $errors = $this->validate_cas_keyval($errors, $fromform['variabledefinitions'], 'variabledefinitions',
+                $statevariabledefinitions);
+        $errors = $this->validate_cas_keyval($errors, $fromform['questionvariables'], 'questionvariables',
+                $statevariabledefinitions);
 
         // Question text.
         $errors['questiontext'] = array();
-        $errors = $this->validate_cas_text($errors, $fromform['questiontext']['text'], 'questiontext', $fixingdollars);
+        $errors = $this->validate_cas_text($errors, $fromform['questiontext']['text'], 'questiontext', $fixingdollars, null,
+                $statevariabledefinitions);
 
         // Check for whitespace following placeholders.
         $sloppytags = $this->get_sloppy_tags($fromform['questiontext']['text']);
@@ -1049,7 +1056,8 @@ class qtype_stack_edit_form extends question_edit_form {
 
         // Specific feedback.
         $errors['specificfeedback'] = array();
-        $errors = $this->validate_cas_text($errors, $fromform['specificfeedback']['text'], 'specificfeedback', $fixingdollars);
+        $errors = $this->validate_cas_text($errors, $fromform['specificfeedback']['text'], 'specificfeedback', $fixingdollars, null,
+                $statevariabledefinitions);
 
         $errors['specificfeedback'] += $this->check_no_placeholders(
                     stack_string('specificfeedback'), $fromform['specificfeedback']['text'],
@@ -1057,7 +1065,8 @@ class qtype_stack_edit_form extends question_edit_form {
 
         // General feedback.
         $errors['generalfeedback'] = array();
-        $errors = $this->validate_cas_text($errors, $fromform['generalfeedback']['text'], 'generalfeedback', $fixingdollars);
+        $errors = $this->validate_cas_text($errors, $fromform['generalfeedback']['text'], 'generalfeedback', $fixingdollars, null,
+                $statevariabledefinitions);
         $errors['generalfeedback'] += $this->check_no_placeholders(
                     get_string('generalfeedback', 'question'), $fromform['generalfeedback']['text']);
 
@@ -1072,7 +1081,8 @@ class qtype_stack_edit_form extends question_edit_form {
             }
         } else {
             // Note, the 'questionnote' does not have an editor field and hence no 'text' sub-clause.
-            $errors = $this->validate_cas_text($errors, $fromform['questionnote'], 'questionnote', $fixingdollars);
+            $errors = $this->validate_cas_text($errors, $fromform['questionnote'], 'questionnote', $fixingdollars, null,
+                    $statevariabledefinitions);
         }
         $errors['questionnote'] += $this->check_no_placeholders(
                     stack_string('questionnote'), $fromform['questionnote']);
@@ -1116,12 +1126,13 @@ class qtype_stack_edit_form extends question_edit_form {
                         'questiontextfeedbackonlycontain', '[[feedback:' . $prtname . ']]');
             }
 
-            $errors = $this->validate_prt($errors, $fromform, $prtname, $fixingdollars);
+            $errors = $this->validate_prt($errors, $fromform, $prtname, $fixingdollars, $statevariabledefinitions);
         }
 
         // 4) Validate all hints.
         foreach ($fromform['hint'] as $index => $hint) {
-            $errors = $this->validate_cas_text($errors, $hint['text'], 'hint[' . $index . ']', $fixingdollars);
+            $errors = $this->validate_cas_text($errors, $hint['text'], 'hint[' . $index . ']', $fixingdollars, null,
+                    $statevariabledefinitions);
         }
 
         // Clear out any empty $errors elements, ready for the next check.
@@ -1133,7 +1144,7 @@ class qtype_stack_edit_form extends question_edit_form {
 
         // If everything else is OK, try executing the CAS code to check for errors.
         if (empty($errors)) {
-            $errors = $this->validate_question_cas_code($errors, $fromform, $fixingdollars);
+            $errors = $this->validate_question_cas_code($errors, $fromform, $fixingdollars, $statevariabledefinitions);
         }
 
         // Convert the $errors array from our array of arrays format to the
@@ -1156,7 +1167,7 @@ class qtype_stack_edit_form extends question_edit_form {
      * @param string $prtname the name of the PRT to validate.
      * @return array the update $errors array.
      */
-    protected function validate_prt($errors, $fromform, $prtname, $fixingdollars) {
+    protected function validate_prt($errors, $fromform, $prtname, $fixingdollars, $statevariabledefinitions) {
 
         if (strlen($prtname) > 18 && !isset($fromform[$prtname . 'prtdeleteconfirm'])) {
             $errors['specificfeedback'][] = stack_string('prtnamelength', $prtname);
@@ -1173,7 +1184,7 @@ class qtype_stack_edit_form extends question_edit_form {
 
         // Check the fields the belong to the PRT as a whole.
         $errors = $this->validate_cas_keyval($errors, $fromform[$prtname . 'feedbackvariables'],
-                $prtname . 'feedbackvariables');
+                $prtname . 'feedbackvariables', $statevariabledefinitions);
 
         if ($fromform[$prtname . 'value'] < 0) {
             $errors[$prtname . 'value'][] = stack_string('questionvaluepostive');
@@ -1186,7 +1197,8 @@ class qtype_stack_edit_form extends question_edit_form {
             $nodekey = $node->name - 1;
 
             // Check the fields the belong to this node individually.
-            $errors = $this->validate_prt_node($errors, $fromform, $prtname, $nodekey, $fixingdollars);
+            $errors = $this->validate_prt_node($errors, $fromform, $prtname, $nodekey, $fixingdollars,
+                    $statevariabledefinitions);
 
             if (is_null($textformat)) {
                 $textformat = $fromform[$prtname . 'truefeedback'][$nodekey]['format'];
@@ -1227,7 +1239,7 @@ class qtype_stack_edit_form extends question_edit_form {
      * @param string $nodekey the name of the node to validate.
      * @return array the update $errors array.
      */
-    protected function validate_prt_node($errors, $fromform, $prtname, $nodekey, $fixingdollars) {
+    protected function validate_prt_node($errors, $fromform, $prtname, $nodekey, $fixingdollars, $statevariabledefinitions) {
         $nodegroup = $prtname . 'node[' . $nodekey . ']';
 
         $errors = $this->validate_cas_string($errors, $fromform[$prtname . 'sans'][$nodekey],
@@ -1285,7 +1297,7 @@ class qtype_stack_edit_form extends question_edit_form {
             }
 
             $errors = $this->validate_cas_text($errors, $fromform[$prtname . $branch . 'feedback'][$nodekey]['text'],
-                    $prtname . $branch . 'feedback[' . $nodekey . ']', $fixingdollars);
+                    $prtname . $branch . 'feedback[' . $nodekey . ']', $fixingdollars, null, $statevariabledefinitions);
         }
 
         return $errors;
@@ -1329,7 +1341,7 @@ class qtype_stack_edit_form extends question_edit_form {
      * @param string $savesession the array key to save the session to in $this->validationcasstrings.
      * @return array updated $errors array.
      */
-    protected function validate_cas_text($errors, $value, $fieldname, $fixingdollars, $session = null) {
+    protected function validate_cas_text($errors, $value, $fieldname, $fixingdollars, $session = null, $statevariabledefinitions = array()) {
         if (!$fixingdollars && strpos($value, '$$') !== false) {
             $errors[$fieldname][] = stack_string('forbiddendoubledollars');
         }
@@ -1356,6 +1368,10 @@ class qtype_stack_edit_form extends question_edit_form {
             }
         }
 
+        // If we got this far we may also check the state-variable references.
+        $errors = $this->validate_cas_keyval($errors, implode(";",$castext->get_all_raw_casstrings()), $fieldname,
+                $statevariabledefinitions);
+
         return $errors;
     }
 
@@ -1367,7 +1383,7 @@ class qtype_stack_edit_form extends question_edit_form {
      * @param string $fieldname the name of the field add any errors to.
      * @return array updated $errors array.
      */
-    protected function validate_cas_keyval($errors, $value, $fieldname) {
+    protected function validate_cas_keyval($errors, $value, $fieldname, $statevariabledefinitions) {
         if ('' == trim($value)) {
             return $errors;
         }
@@ -1375,6 +1391,22 @@ class qtype_stack_edit_form extends question_edit_form {
         $keyval = new stack_cas_keyval($value, $this->options, $this->seed, 't');
         if (!$keyval->get_valid()) {
             $errors[$fieldname][] = $keyval->get_errors();
+        }
+
+        $statevariablereferences = $keyval->get_state_references();
+        $instancewarned = false;
+        foreach ($statevariablereferences as $context => $variables) {
+            foreach ($variables as $key => $value) {
+                if (array_key_exists($context, $statevariabledefinitions)) {
+                    if ($context != 'instance' && !array_key_exists($key, $statevariabledefinitions[$context])) {
+                        $errors[$fieldname][] = stack_string('referencesundefinedstatevariable',
+                                array('key' => $key, 'context' => $context));
+                    }
+                } else {
+                    $errors[$fieldname][] = stack_string('referencesundefinedstatevariable',
+                            array('key' => $key, 'context' => $context));
+                }
+            }
         }
 
         return $errors;
@@ -1394,7 +1426,7 @@ class qtype_stack_edit_form extends question_edit_form {
      * @param array $fromform the submitted data to validate.
      * @return array updated $errors array.
      */
-    protected function validate_question_cas_code($errors, $fromform, $fixingdollars) {
+    protected function validate_question_cas_code($errors, $fromform, $fixingdollars, $statevariabledefinitions) {
 
         $keyval = new stack_cas_keyval($fromform['variabledefinitions'], $this->options, $this->seed, 't');
         $keyval->instantiate();
@@ -1415,9 +1447,11 @@ class qtype_stack_edit_form extends question_edit_form {
         // Instantiate all text fields and look for errors.
         $castextfields = array('questiontext', 'specificfeedback', 'generalfeedback');
         foreach ($castextfields as $field) {
-            $errors = $this->validate_cas_text($errors, $fromform[$field]['text'], $field, $fixingdollars, clone $session);
+            $errors = $this->validate_cas_text($errors, $fromform[$field]['text'], $field, $fixingdollars, clone $session,
+                    $statevariabledefinitions);
         }
-        $errors = $this->validate_cas_text($errors, $fromform['questionnote'], 'questionnote', $fixingdollars, clone $session);
+        $errors = $this->validate_cas_text($errors, $fromform['questionnote'], 'questionnote', $fixingdollars, clone $session,
+                $statevariabledefinitions);
 
         // Make a list of all inputs, instantiate it and then look for errors.
         $inputs = $this->get_input_names_from_question_text();

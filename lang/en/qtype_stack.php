@@ -99,6 +99,7 @@ $string['feedbackvariables_help'] = 'The feedback variables enable you to manipu
 $string['feedbackvariables_link'] = '%%WWWROOT%%/question/type/stack/doc/doc.php/Authoring/KeyVals.md#Feedback_variables';
 $string['fieldshouldnotcontainplaceholder'] = '{$a->field} should not contain any [[{$a->type}:...]] placeholders.';
 $string['firstnodemusthavelowestnumber'] = 'The first node must have the lowest number.';
+$string['referencesundefinedstatevariable'] = 'References state-variable {$a->key} of {$a->context}-scope, without declaring it in the variable definitions field.';
 $string['fixdollars'] = 'Fix dollars';
 $string['fixdollarslabel'] = 'Replace <code>$...$</code> with <code>\(...\)</code> and <code>$$...$$</code> with <code>\[...\]</code> on save.';
 $string['fixdollars_help'] = 'This option is useful if are copying and pasting (or typing) TeX with <code>$...$</code> and <code>$$...$$</code> delimiters. Those delimiters will be replaced by the recommended delimiters during the save process.';
