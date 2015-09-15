@@ -314,7 +314,9 @@ class stack_cas_castext_parser_test extends qtype_stack_testcase {
         $this->assertEquals('[[ if test="a" ]]1[[ elif test="b" ]]2[[ else ]][[ if test="c" ]]3[[else]]4[[/ if ]][[/ if ]]',
                 $parsed['to_string']);
         // String check against node->to_string. The conversion to the tree-form shoudl have rewriten the elses as new ifs.
-        $this->assertEquals('[[ if test="a" ]]1[[/ if ]][[ if test="(not (a)) and (b)" ]]2[[/ if ]][[ if test="(not (a)) and (not (b))" ]][[ if test="c" ]]3[[/ if ]][[ if test="(not (c))" ]]4[[/ if ]][[/ if ]]', $parsed['tree_form']->to_string());
+        $this->assertEquals('[[ if test="a" ]]1[[/ if ]][[ if test="(not (a)) and (b)" ]]2[[/ if ]][[ if test="(not (a)) and '.
+                '(not (b))" ]][[ if test="c" ]]3[[/ if ]][[ if test="(not (c))" ]]4[[/ if ]][[/ if ]]',
+                $parsed['tree_form']->to_string());
     }
 
     /**
@@ -327,7 +329,8 @@ class stack_cas_castext_parser_test extends qtype_stack_testcase {
         $this->assertEquals('[[ fi test="a" ]]1[[ elif test="b" ]]2[[ else ]][[ if test="c" ]]3[[else]]4[[/ if ]][[/ fi ]]',
                 $parsed['to_string']);
         // String check against node->to_string. The conversion to the tree-form shoudl have rewriten the elses as new ifs.
-        $this->assertEquals('[[ fi test="a" ]]1[[ elif test="b" ]]2[[ else ]][[ if test="c" ]]3[[/ if ]][[ if test="(not (c))" ]]4[[/ if ]][[/ fi ]]', $parsed['tree_form']->to_string());
+        $this->assertEquals('[[ fi test="a" ]]1[[ elif test="b" ]]2[[ else ]][[ if test="c" ]]3[[/ if ]][[ if'.
+                ' test="(not (c))" ]]4[[/ if ]][[/ fi ]]', $parsed['tree_form']->to_string());
     }
 
 

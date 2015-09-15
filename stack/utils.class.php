@@ -198,7 +198,7 @@ class stack_utils {
                 array_push($openstack, $char);
 
             } else if (($closerpos = strpos($rights, $char)) !== false) {
-                $opener = array_pop($openstack); // null if array is empty, which works.
+                $opener = array_pop($openstack); // Null if array is empty, which works.
                 if ($opener !== $lefts[$closerpos]) {
                     return false;
                 }
@@ -563,28 +563,28 @@ class stack_utils {
         $strings = array();
 
         $i = 0;
-        $lastslash = False;
-        $instring = False;
+        $lastslash = false;
+        $instring = false;
         $stringentry = -1;
         while ($i < strlen($string)) {
-          $c = $string[$i];
-          $i++;
-          if ($instring){
-            if ($c == '"' && !$lastslash) {
-              $instring = False;
-              // -1 to drop the quote
-              $s = substr($string,$stringentry,($i-$stringentry)-1);
-              $strings[] = $s;
-            } else if ($c == "\\") {
-              $lastslash = !$lastslash;
-            } else if ($lastslash) {
-              $lastslash = False;
+            $c = $string[$i];
+            $i++;
+            if ($instring) {
+                if ($c == '"' && !$lastslash) {
+                    $instring = false;
+                    // Offset -1 to drop the quote.
+                    $s = substr($string, $stringentry, ($i - $stringentry) - 1);
+                    $strings[] = $s;
+                } else if ($c == "\\") {
+                    $lastslash = !$lastslash;
+                } else if ($lastslash) {
+                    $lastslash = false;
+                }
+            } else if ($c == '"') {
+                $instring = true;
+                $lastslash = false;
+                $stringentry = $i;
             }
-          } else if ($c == '"') {
-            $instring = True;
-            $lastslash = False;
-            $stringentry = $i;
-          }
         }
 
         return $strings;
