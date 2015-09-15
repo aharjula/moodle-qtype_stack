@@ -1103,6 +1103,9 @@ class qtype_stack_edit_form extends question_edit_form {
                 $errors = $this->validate_cas_string($errors,
                         $fromform[$inputname . 'modelans'], $inputname . 'modelans', $inputname . 'modelans');
 
+                $errors = $this->validate_state_references_from_string($errors, $inputname . 'modelans', $statevariabledefinitions,
+                        $fromform[$inputname . 'modelans']);
+
                 // TODO: find out if this input type acutally requires options, rather than
                 // the hard-coded check here.
                 if (false) {
@@ -1245,8 +1248,14 @@ class qtype_stack_edit_form extends question_edit_form {
         $errors = $this->validate_cas_string($errors, $fromform[$prtname . 'sans'][$nodekey],
                 $nodegroup, $prtname . 'sans' . $nodekey, 'sansrequired');
 
+        $errors = $this->validate_state_references_from_string($errors, $nodegroup, $statevariabledefinitions,
+                $fromform[$prtname . 'sans'][$nodekey]);
+
         $errors = $this->validate_cas_string($errors, $fromform[$prtname . 'tans'][$nodekey],
                 $nodegroup, $prtname . 'tans' . $nodekey, 'tansrequired');
+
+        $errors = $this->validate_state_references_from_string($errors, $nodegroup, $statevariabledefinitions,
+                $fromform[$prtname . 'tans'][$nodekey]);
 
         $answertest = new stack_ans_test_controller($fromform[$prtname . 'answertest'][$nodekey]);
         if ($answertest->required_atoptions()) {
@@ -1341,7 +1350,8 @@ class qtype_stack_edit_form extends question_edit_form {
      * @param string $savesession the array key to save the session to in $this->validationcasstrings.
      * @return array updated $errors array.
      */
-    protected function validate_cas_text($errors, $value, $fieldname, $fixingdollars, $session = null, $statevariabledefinitions = array()) {
+    protected function validate_cas_text($errors, $value, $fieldname, $fixingdollars, $session = null,
+            $statevariabledefinitions = array()) {
         if (!$fixingdollars && strpos($value, '$$') !== false) {
             $errors[$fieldname][] = stack_string('forbiddendoubledollars');
         }
@@ -1369,8 +1379,8 @@ class qtype_stack_edit_form extends question_edit_form {
         }
 
         // If we got this far we may also check the state-variable references.
-        $errors = $this->validate_cas_keyval($errors, implode(";",$castext->get_all_raw_casstrings()), $fieldname,
-                $statevariabledefinitions);
+        $keyval = new stack_cas_keyval(implode(";",$castext->get_all_raw_casstrings()), $this->options, $this->seed, 't');
+        $errors = $this->validate_state_references($errors, $fieldname, $statevariabledefinitions, $keyval->get_state_references());
 
         return $errors;
     }
@@ -1394,11 +1404,25 @@ class qtype_stack_edit_form extends question_edit_form {
         }
 
         $statevariablereferences = $keyval->get_state_references();
+        $errors = $this->validate_state_references($errors, $fieldname, $statevariabledefinitions, $statevariablereferences);
+
+        return $errors;
+    }
+
+    /**
+     * Generate errors for missing variable-definitions.
+     * @param array $errors the errors array that validation is assembling.
+     * @param string $fieldname the name of the field add any errors to.
+     * @param array $defined the variables defined.
+     * @param array $used the variables used.
+     * @return array updated $errors array.
+     */
+    private function validate_state_references($errors, $fieldname, $defined, $used) {
         $instancewarned = false;
-        foreach ($statevariablereferences as $context => $variables) {
+        foreach ($used as $context => $variables) {
             foreach ($variables as $key => $value) {
-                if (array_key_exists($context, $statevariabledefinitions)) {
-                    if ($context != 'instance' && !array_key_exists($key, $statevariabledefinitions[$context])) {
+                if (array_key_exists($context, $defined)) {
+                    if ($context != 'instance' && !array_key_exists($key, $defined[$context])) {
                         $errors[$fieldname][] = stack_string('referencesundefinedstatevariable',
                                 array('key' => $key, 'context' => $context));
                     }
@@ -1406,10 +1430,27 @@ class qtype_stack_edit_form extends question_edit_form {
                     $errors[$fieldname][] = stack_string('referencesundefinedstatevariable',
                             array('key' => $key, 'context' => $context));
                 }
+                if (($context == 'instance' || $context == 'global') && strlen($key) > 18) {
+                    $errors[$fieldname][] = stack_string('statevariablelongkey',
+                            array('key' => $key, 'context' => $context));
+                }
             }
         }
 
         return $errors;
+    }
+
+    /**
+     * Shorthand for validating variable references using string fields.
+     * @param array $errors the errors array that validation is assembling.
+     * @param string $fieldname the name of the field add any errors to.
+     * @param array $defined the variables defined.
+     * @param string $used_as_string the CASString / keyval to search for references.
+     * @return array updated $errors array.
+     */
+    private function validate_state_references_from_string($errors, $fieldname, $defined, $used_as_string) {
+        $keyval = new stack_cas_keyval($used_as_string, $this->options, $this->seed, 't');
+        return $this->validate_state_references($errors, $fieldname, $defined, $keyval->get_state_references());
     }
 
     /**
