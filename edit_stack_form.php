@@ -1125,10 +1125,8 @@ class qtype_stack_edit_form extends question_edit_form {
                     $errors[$prtname . 'prtdeleteconfirm'][] = stack_string('youmustconfirm');
                 }
             } else if ($count > 1) {
-                $errors['specificfeedback'][] = stack_string(
-                        'questiontextfeedbackonlycontain', '[[feedback:' . $prtname . ']]');
+                $errors['specificfeedback'][] = stack_string('questiontextfeedbackonlycontain', '[[feedback:' . $prtname . ']]');
             }
-
             $errors = $this->validate_prt($errors, $fromform, $prtname, $fixingdollars, $statevariabledefinitions);
         }
 
@@ -1379,7 +1377,7 @@ class qtype_stack_edit_form extends question_edit_form {
         }
 
         // If we got this far we may also check the state-variable references.
-        $keyval = new stack_cas_keyval(implode(";",$castext->get_all_raw_casstrings()), $this->options, $this->seed, 't');
+        $keyval = new stack_cas_keyval(implode(";", $castext->get_all_raw_casstrings()), $this->options, $this->seed, 't');
         $errors = $this->validate_state_references($errors, $fieldname, $statevariabledefinitions, $keyval->get_state_references());
 
         return $errors;
@@ -1445,11 +1443,11 @@ class qtype_stack_edit_form extends question_edit_form {
      * @param array $errors the errors array that validation is assembling.
      * @param string $fieldname the name of the field add any errors to.
      * @param array $defined the variables defined.
-     * @param string $used_as_string the CASString / keyval to search for references.
+     * @param string $usedasstring the CASString / keyval to search for references.
      * @return array updated $errors array.
      */
-    private function validate_state_references_from_string($errors, $fieldname, $defined, $used_as_string) {
-        $keyval = new stack_cas_keyval($used_as_string, $this->options, $this->seed, 't');
+    private function validate_state_references_from_string($errors, $fieldname, $defined, $usedasstring) {
+        $keyval = new stack_cas_keyval($usedasstring, $this->options, $this->seed, 't');
         return $this->validate_state_references($errors, $fieldname, $defined, $keyval->get_state_references());
     }
 
