@@ -29,6 +29,7 @@ require_once('castext/if.class.php');
 require_once('castext/define.class.php');
 require_once('castext/foreach.class.php');
 require_once('castext/external.class.php');
+require_once('castext/jsxplot.class.php');
 require_once(dirname(__FILE__) . '../../hints.class.php');
 
 class stack_cas_text {
@@ -274,6 +275,10 @@ class stack_cas_text {
                         $block = new stack_cas_castext_foreach($node, $session, $this->seed, $this->security, $this->syntax,
                                 $this->insertstars);
                         break;
+                    case 'jsxplot':
+                        $block = new stack_cas_castext_jsxplot($node, $session, $this->seed, $this->security, $this->syntax,
+                                $this->insertstars);
+                        break;
                     case 'external':
                         if ($this->settings->externalblocks == '1') {
                             $block = new stack_cas_castext_external($node, $session, $this->seed, $this->security, $this->syntax,
@@ -335,6 +340,10 @@ class stack_cas_text {
                         break;
                     case 'foreach':
                         $block = new stack_cas_castext_foreach($node, $this->session, $this->seed, $this->security, $this->syntax,
+                                $this->insertstars);
+                        break;
+                    case 'jsxplot':
+                        $block = new stack_cas_castext_jsxplot($node, $this->session, $this->seed, $this->security, $this->syntax,
                                 $this->insertstars);
                         break;
                     case 'external':

@@ -129,6 +129,8 @@ load("assessment.mac"); /* Currently part of the STACK distribution */
 
 load("stackstate.mac"); /* Functions for state variable control */
 
+load("stack_jessie_code.mac"); /* Functions to convert maxima expressions to Jessie code used in JSXGraph */
+
 load("stackunit.mac"); /* Simplistic prefix handling for SI-units */
 
 load("stacktex.lisp"); /* Loads LaTeX changes and preferences */

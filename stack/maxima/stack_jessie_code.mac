@@ -1,0 +1,42 @@
+defstruct(MaximaToJS(maxima, js, type));
+
+JSops:[new(MaximaToJS(%e, "EULER", constant)),
+    new(MaximaToJS("+", "+", nary)),
+    new(MaximaToJS("*", "*", nary)),
+    new(MaximaToJS("-", "-", prefix)),
+    new(MaximaToJS("^", "Math.pow", prefix)), /* This illustrates the power of this approach.  In Maxima ^ is an infix, but in JS it is a prefix function. */
+    new(MaximaToJS(cos, "Math.cos", prefix)),
+    new(MaximaToJS(tan, "Math.tan", prefix)),
+    new(MaximaToJS(sin, "Math.sin", prefix)),
+    new(MaximaToJS(acos, "Math.acos", prefix)),
+    new(MaximaToJS(atan, "Math.atan", prefix)),
+    new(MaximaToJS(asin, "Math.asin", prefix)),
+    new(MaximaToJS(max, "Math.max", prefix)),
+    new(MaximaToJS(min, "Math.min", prefix)),
+    new(MaximaToJS(floor, "Math.floor", prefix)),
+    new(MaximaToJS(round, "Math.round", prefix)),
+    new(MaximaToJS(ceiling, "Math.ceil", prefix)),
+    new(MaximaToJS(abs, "Math.abs", prefix)),
+    new(MaximaToJS(sqrt, "Math.sqrt", prefix)),
+    new(MaximaToJS(exp, "Math.exp", prefix)),
+    new(MaximaToJS(log, "Math.log", prefix))
+];
+
+/* Initiate the process.  This creates new dummy functions. */
+maplist(lambda([p], apply(p@type, [p@js])), JSops);
+
+/* This function converts to JS. */
+stack_maxima_to_js(ex) := block([unsupportedops],
+    /* Ensure all operators are supported for conversion to JS. */
+    unsupportedops:setdifference(get_ops(ex), setify(maplist(lambda([p], p@maxima), JSops))),
+    if(not(is( unsupportedops = {} ))) then
+        error("The following functions are not supported by stack_maxima_to_js:", string(unsupportedops)),
+    /* Convert the expression. */
+    ev(subst(maplist(lambda([p], p@maxima=p@js), JSops), ex), opsubst:true)
+)$
+
+
+/* Mockup for other development tasks */
+stack_maxima_to_jessie_code(ex) := block(
+    return(string(ex))
+)$
