@@ -1,16 +1,22 @@
 # Future plans
 
-The following features are in approximate priority order.  How to report bugs and make suggestions is described on the [community](../About/Community.md) page.
+How to report bugs and make suggestions is described on the [community](../About/Community.md) page.
 
 ## Features to add ##
 
+Note, where the feature is listed as "(done)" means we have prototype code in the testing phase.  These features are not included in this release.
+
 ### Inputs ###
 
-* Add new input types
- 1. Dropdown/Multiple choice input type.
- 2. Dragmath (actually, probably use javascript from NUMBAS instead here).
- 3. Sliders.
+* (done) Modify the text area input so that each line is validated separately.
+* (underway) Reasoning by equivalence input type.
 * Add support for coordinates, so students can type in (x,y).  This should be converted internally to a list.
+* Add new input types
+ 1. (done) "scratch working" area in which students can record their thinking etc. alongside the final answer.
+ 2. Dropdown/Multiple choice input type.
+ 3. Dragmath (actually, probably use javascript from NUMBAS instead here, or the MathDox editor).
+ 4. Sliders.
+ 5. Geogebra input.
 * It is very useful to be able to embed input elements in equations, and this was working in STACK 2.0. However is it possible with MathJax or other Moodle maths filters?
 
 ### Improve the editing form ###
@@ -26,7 +32,8 @@ The following features are in approximate priority order.  How to report bugs an
 
 ### Other ideas ###
 
-* Multi-lingual support for questions.  See [languages](Languages.md).  
+* (done) Document ways of using JSXGraph  `http://jsxgraph.org` for better support of graphics.
+* Better options for automatically generated plots.  (Aalto use of tikzpicture?)  (Draw package?)
 * Implement "CommaError" checking for CAS strings.  Make comma an option for the decimal separator.
 * Decimal separator, both input and output.
 * Implement "BracketError" option for inputs.  This allows the student's answer to have only those types of parentheses which occur in the teacher's answer.  Types are `(`,`[` and `{`.  So, if a teacher's answer doesn't have any `{` then a student's answer with any `{` or `}` will be invalid.
@@ -39,6 +46,7 @@ The following features are in approximate priority order.  How to report bugs an
  1. They should be like inputs. We should return an answer test object, not a controller object.
  2. at->get_at_mark() really ought to be at->matches(), since that is how it is used.
 * Make the PRT Score element CAS text, so that a value calculated in the "Feedback variables" could be included here.
+* Refactor the STACK return object as a structure. ` ? defstruct`.  Note that `@` is the element access operator.
 
 ## Features that might be attempted in the future - possible self contained projects ##
 
@@ -53,10 +61,26 @@ The following features are in approximate priority order.  How to report bugs an
  * Support for inequalities.  This includes real intervals and sets of real numbers.
  * Support for the "draw" package.
 * Add support for qtype_stack in Moodle's lesson module.
+* Improve the way questions are deployed.
+ 1. Auto deploy.  E.g. if the first variable in the question variables is a single a:rand(n), then loop a=0..(n-1).
+ 2. Remove many versions at once.
+* When validating the editing form, also evaluate the Maxima code in the PRTs, using the teacher's model answers.
+* You cannot use one PRT node to guard the evaluation of another, for example Node 1 check x = 0, and only if that is false, Node 2 do 1 / x. We need to change how PRTs do CAS evaluation.
+
 
 ## Ideas which have been discussed in the past.
 
-The following ideas are on hold while we evaluate [JSXGraph](../Installation/JSXGraph.md)
-* GeoGebra input type.
-* Better options for automatically generated plots.  (Aalto use of tikzpicture?)  (Draw package?)
+To implement the decinal places test we need an "ephemiral form" for representing numbers at a syntactic level.   This test probably needs to operate at the PHP level on strings, rather then through Maxima.  
+
+Note that in Maxima the `floor()` function gives `floor(0.1667*10^4)` as `1666` not `1667` as expected.  So use `floor(0.1667*10^4)` instead.
+
+
+## STACK custom reports
+
+Basic reports now work.
+
+* Really ensure "attempts" list those with meaningful histories.  I.e. if possible filter out navigation to and from the page etc.
+* Add better maxima support functions for off-line analysis.
+ * A fully maxima-based representation of the PRT?
+
 

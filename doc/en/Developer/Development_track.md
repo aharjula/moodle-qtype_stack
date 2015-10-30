@@ -1,11 +1,19 @@
-# Development track for STACK 4.0 (alpha)
+# Development track for STACK 3.5 and STACK 4.0
 
-This page describes the major tasks we still need to complete in order to be able to release the next version: STACK 4.0. Plans looking further into the future are described  on [Future plans](Future_plans.md).
-The past development history is documented on [Development history](Development_history.md).
+Requests for features and ideas for developing STACK are all recorded in [Future plans](Future_plans.md). The
+past development history is documented on [Development history](Development_history.md).
 
 How to report bugs and make suggestions is described on the [community](../About/Community.md) page.
 
-## Version 4.0
+As of September 2015 there are two parallel development tracks for STACK.
+
+# STACK 3.5
+
+This track is developing more inputs, including a "reasoning by equivalence" input type.
+
+# STACK 4.0
+
+This track adds major new features, and changes the interaction model for STACK substantially.  The goal is to develop STACK 3.5 and STACK 4.0 in parallel.  At a point where both are stable we will decide whether to actually release 3.5, or to merge and release all features as one new major change.
 
 This version of STACK contains a number of major new features.
 1. Scientific [units](../Authoring/Units.md).
@@ -43,16 +51,13 @@ strings, rather then through Maxima.
  * Maxima to other languages converter with JSXGraph/JessieCode as the prototype, Matlab and Mathematica as the next step. stack_jessie(%e^(-5*x)*%pi) => "EULER^(-5*x)*PI"
  
 ## STACK custom reports
-
-Basic reports now work.
-
 * *done* Add titles and explanations to the page, and document with examples.
 * Really ensure "attempts" list those with meaningful histories.  I.e. if possible filter out navigation to and from the page etc.
 * Add better maxima support functions for off-line analysis.
 
 ## Parallel development
 
-As of Aug 2015, there are prallel developments to implement the following.
+As of Aug 2015, there are parallel developments to implement the following.
 
 * Reasoning by equivalence input type.  
 * Inputs which enable student to input steps in the working. In particular, variable numbers of input boxes.

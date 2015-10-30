@@ -250,6 +250,9 @@ class stack_utils {
                 $end++;
             }
 
+            if ($nesting > 0) {
+                return array('', -1, -1);
+            }
         }
 
         return array(substr($string, $start, $end - $start), $start, $end - 1);
@@ -617,7 +620,7 @@ class stack_utils {
      */
     public static function array_to_cvs($array) {
         if (!empty($array)) {
-            $string = "";
+            $string = '';
             $i = 0;
             foreach ($array as $element) {
                 if ($i > 0) {

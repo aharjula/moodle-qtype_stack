@@ -420,7 +420,7 @@ class qtype_stack_edit_form extends question_edit_form {
         $answertests = stack_ans_test_controller::get_available_ans_tests();
         // Algebraic Equivalence should be the default test, and first on the list.
         // This does not come first in the alphabet of all languages.
-        $default     = 'AlgEquiv';
+        $default    = 'AlgEquiv';
         $defaultstr = stack_string($answertests[$default]);
         unset($answertests[$default]);
 
@@ -1099,6 +1099,10 @@ class qtype_stack_edit_form extends question_edit_form {
                 $errors['questiontext'][] = stack_string('inputnamelength', $inputname);
             }
 
+            if ($fromform[$inputname . 'mustverify'] and $fromform[$inputname . 'showvalidation'] == 0) {
+                $errors[$inputname . 'mustverify'][] = stack_string('mustverifyshowvalidation');
+            }
+
             if (array_key_exists($inputname . 'modelans', $fromform)) {
                 $errors = $this->validate_cas_string($errors,
                         $fromform[$inputname . 'modelans'], $inputname . 'modelans', $inputname . 'modelans');
@@ -1125,9 +1129,11 @@ class qtype_stack_edit_form extends question_edit_form {
                     $errors[$prtname . 'prtdeleteconfirm'][] = stack_string('youmustconfirm');
                 }
             } else if ($count > 1) {
-                $errors['specificfeedback'][] = stack_string('questiontextfeedbackonlycontain', '[[feedback:' . $prtname . ']]');
+                $errors['specificfeedback'][] = stack_string(
+                        'questiontextfeedbackonlycontain', '[[feedback:' . $prtname . ']]');
             }
-            $errors = $this->validate_prt($errors, $fromform, $prtname, $fixingdollars, $statevariabledefinitions);
+
+            $errors = $this->validate_prt($errors, $fromform, $prtname, $fixingdollars);
         }
 
         // 4) Validate all hints.
@@ -1174,6 +1180,10 @@ class qtype_stack_edit_form extends question_edit_form {
             $errors['specificfeedback'][] = stack_string('prtnamelength', $prtname);
         }
 
+        if (strlen($prtname) > 18 && !isset($fromform[$prtname . 'prtdeleteconfirm'])) {
+            $errors['specificfeedback'][] = stack_string('prtnamelength', $prtname);
+        }
+
         if (!array_key_exists($prtname . 'feedbackvariables', $fromform)) {
             // This happens when you edit the question text to add more PRTs.
             // The user added a new PRT and did not click "Verify the question
@@ -1183,12 +1193,19 @@ class qtype_stack_edit_form extends question_edit_form {
             return $errors;
         }
 
-        // Check the fields the belong to the PRT as a whole.
+        // Check the fields that belong to the PRT as a whole.
         $errors = $this->validate_cas_keyval($errors, $fromform[$prtname . 'feedbackvariables'],
                 $prtname . 'feedbackvariables', $statevariabledefinitions);
 
         if ($fromform[$prtname . 'value'] < 0) {
             $errors[$prtname . 'value'][] = stack_string('questionvaluepostive');
+        }
+
+        // Check that answernotes are not duplicated.
+        $answernotes = array_merge($fromform[$prtname . 'trueanswernote'], $fromform[$prtname . 'falseanswernote']);
+        if (count(array_unique($answernotes)) < count($answernotes)) {
+            // Strictly speaking this should not be in the feedback variables.  But there is no general place to put this error.
+            $errors[$prtname . 'feedbackvariables'][] = stack_string('answernoteunique');
         }
 
         // Check the nodes.
@@ -1214,7 +1231,7 @@ class qtype_stack_edit_form extends question_edit_form {
         $roots = $graph->get_roots();
 
         // There should only be a single root. If there is more than one, then we
-        // we assume that the first one is the intended root, and flat the others as unused.
+        // assume that the first one is the intended root, and flat the others as unused.
         array_shift($roots);
         foreach ($roots as $node) {
             $errors[$prtname . 'node[' . ($node->name - 1) . ']'][] = stack_string('nodenotused');
@@ -1518,9 +1535,8 @@ class qtype_stack_edit_form extends question_edit_form {
 
             if ($fromform[$inputname . 'options'] && $inputsession->get_errors_key('optionsfor' . $inputname)) {
                 $errors[$inputname . 'options'][] = $inputsession->get_errors_key('optionsfor' . $inputname);
-            } else {
-                // TODO: Send the acutal value to the input, and ask it to validate it.
             }
+                // else TODO: Send the acutal value to the input, and ask it to validate it.
         }
 
         // At this point if we have errors, especially with inputs, there is no point in executing any of the PRTs.

@@ -2,8 +2,11 @@
 
 For current and future plans, see [Development track](Development_track.md) and [Future plans](Future_plans.md) respectively.
 
-
 ## Version 3.4
+
+Released September 2015. 
+
+This contains numerous minor bug fixes and improvements.
 
 Other Changes since 3.3:
   
@@ -11,6 +14,9 @@ Other Changes since 3.3:
 2. When validating a student's expression, add the option to show a list of variables alongside the displayed expression.
 3. The install process now attempts to auto-generate a maxima image.
 4. Support for the stats package added.
+5. Change in the behaviour of the CASEqual answer test.  Now we always assume `simp:false`.
+6. Add support for more AMS mathematics environments, including `\begin{align}...\end{align}`, `\begin{align*}...\end{align*}` etc.
+7. STACK tried to automatically write an optimised image for linux.  This should help installs where unix access is difficult.
 
 Changes in this branch only since 3.3:
 

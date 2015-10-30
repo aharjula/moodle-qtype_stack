@@ -47,6 +47,7 @@ $string['answernote_link'] = '%%WWWROOT%%/question/type/stack/doc/doc.php/Author
 $string['answernotedefaultfalse'] = '{$a->prtname}-{$a->nodename}-F';
 $string['answernotedefaulttrue'] = '{$a->prtname}-{$a->nodename}-T';
 $string['answernoterequired'] = 'Answer note must not be empty.';
+$string['answernoteunique'] = 'Duplicate answer notes detected in this potential response tree.';
 $string['assumepositive'] = 'Assume positive';
 $string['assumepositive_help'] = 'This option sets the value of Maxima\'s assume_pos variable.';
 $string['assumepositive_link'] = '%%WWWROOT%%/question/type/stack/doc/doc.php/Authoring/Options.md#Assume_Positive';
@@ -118,11 +119,12 @@ $string['generalfeedback'] = 'General feedback';
 $string['generalfeedback_help'] = 'General feedback is CASText. General feedback, also known as a "worked solution", is shown to the student after they have attempted the question. Unlike feedback, which depends on what response the student gave, the same general feedback text is shown to all students.  It may depend on the question variables used in the version of the question.';
 $string['generalfeedback_link'] = '%%WWWROOT%%/question/type/stack/doc/doc.php/Authoring/CASText.md#general_feedback';
 $string['showvalidation'] = 'Show the validation';
-$string['showvalidation_help'] = 'Setting this option displays any validation feedback from this input, including echoing back their expression in traditional two dimensional notation.';
+$string['showvalidation_help'] = 'Displays any validation feedback from this input, including echoing back their expression in traditional two dimensional notation.   Syntax errors are always reported back.';
 $string['showvalidation_link'] = '%%WWWROOT%%/question/type/stack/doc/doc.php/Authoring/Inputs.md#Show_validation';
 $string['showvalidationno'] = 'No';
 $string['showvalidationyes'] = 'Yes, with variable list';
 $string['showvalidationyesnovars'] = 'Yes, without variable list';
+$string['mustverifyshowvalidation'] = 'You cannot choose to require two step validation but not show the results of validation to the student after the first step.  This puts the student in an impossible position.';
 $string['htmlfragment'] = 'You appear to have some HTML elements in your expression.';
 $string['illegalcaschars'] = 'The characters @ and $ are not allowed in CAS input.';
 $string['inputextraoptions'] = 'Extra options';
@@ -155,7 +157,7 @@ $string['multiplicationsign_link'] = '%%WWWROOT%%/question/type/stack/doc/doc.ph
 $string['multcross'] = 'Cross';
 $string['multdot'] = 'Dot';
 $string['mustverify'] = 'Student must verify';
-$string['mustverify_help'] = 'Specifies whether the student\'s input is presented back to them before scoring.';
+$string['mustverify_help'] = 'Specifies whether the student\'s input is presented back to them as a forced two step process before this input is made available to the scoring mechanism.  Syntax errors are always reported back.';
 $string['mustverify_link'] = '%%WWWROOT%%/question/type/stack/doc/doc.php/Authoring/Inputs.md#Student_must_verify';
 $string['namealreadyused'] = 'You have already used this name.';
 $string['newnameforx'] = 'New name for \'{$a}\'';
@@ -367,9 +369,11 @@ $string['replacedollarstitle'] = 'Replace $s in question texts in {$a}';
 $string['replacedollarserrors'] = 'The following questions generated errors.';
 
 // Strings used by the bulk run question tests script.
+$string['bulktestcontinuefromhere'] = 'Run again or resume, starting from here';
 $string['bulktestindexintro'] = 'Clicking on any of the links will run all the question tests in all the STACK questions in that context';
 $string['bulktestindextitle'] = 'Run the question tests in bulk';
 $string['bulktestnotests'] = 'This question does not have any tests.';
+$string['bulktestrun'] = 'Run all the question tests for all the questions in the system (slow, admin only)';
 $string['bulktesttitle'] = 'Running all the question tests in {$a}';
 $string['overallresult'] = 'Overall result';
 $string['seedx'] = 'Seed {$a}';
@@ -465,7 +469,7 @@ $string['healthchecksampledisplaytex'] = '\[\sum_{n=1}^\infty \frac{1}{n^2} = \f
 $string['healthchecksampleinlinetex'] = '\(\sum_{n=1}^\infty \frac{1}{n^2} = \frac{\pi^2}{6}\).';
 $string['healthcheckplots'] = 'Graph plotting';
 $string['healthcheckplotsintro'] = 'There should be two different plots.  If two identical plots are seen then this is an error in naming the plot files. If no errors are returned, but a plot is not displayed then one of the following may help.  (i) check read permissions on the two temporary directories. (ii) change the options used by GNUPlot to create the plot. Currently there is no web interface to these options.';
-$string['healthchecksampleplots'] = 'Two example plots below.  {@plot([x^4/(1+x^4),diff(x^4/(1+x^4),x)],[x,-3,3])@} {@plot([sin(x),x,x^2,x^3],[x,-3,3],[y,-3,3])@}';
+$string['healthchecksampleplots'] = 'Two example plots below.  {@plot([x^4/(1+x^4),diff(x^4/(1+x^4),x)],[x,-3,3])@} {@plot([sin(x),x,x^2,x^3],[x,-3,3],[y,-3,3])@}.  A third plot may be displayed here with traditional axes.  (Newer versions of Maxima only.) {@plot([sin(x),x,x^2,x^3],[x,-3,3],[y,-3,3],[box, false],[yx_ratio, 1],[axes, solid],[xtics, -3, 1, 3],[ytics, -3, 1, 3])@}';
 $string['healthchecksstackmaximaversion'] = 'Maxima version';
 $string['healthchecksstackmaximaversionfixoptimised'] = 'Please <a href="{$a->url}">rebuild your optimised Maxima executable</a>.';
 $string['healthchecksstackmaximaversionfixserver'] = 'Please rebuild the Maxima code on your MaximaPool server.';
@@ -478,6 +482,10 @@ $string['healthuncached'] = 'Uncached CAS call';
 $string['healthuncachedintro'] = 'This section always sends a genuine call to the CAS, regardless of the current cache settings.  This is needed to ensure the connection to the CAS is really currently working.';
 $string['healthuncachedstack_CAS_ok'] = 'CAS returned data as expected.  You have a live connection to the CAS.';
 $string['healthuncachedstack_CAS_not'] = 'CAS returned some data as expected, but there were errors.';
+$string['healthuncachedstack_CAS_version'] = 'Expected Maxima version : "{$a->expected}".  Actual Maxima version: {$a->actual}.';
+$string['healthuncachedstack_CAS_versionnotchecked'] = 'You have chosen the "default" version of Maxima, so no Maxima version checking is being done.  Your raw connection is actually using version {$a->actual}.';
+$string['healthuncachedstack_CAS_calculation'] = 'Expected CAS calculation : {$a->expected}.  Actual CAS calculation: {$a->actual}.';
+$string['healthunabletolistavail'] = 'Platform type not currently set to "unix", so unable to list available versions of Maxima.';
 $string['healthautomaxopt'] = 'Automatically create an optimised Maxima image';
 $string['healthautomaxoptintro'] = 'For best performance we need to optimize maxima on a linux machine.  See the <a href="doc/doc.php/CAS/Optimising_Maxima.md">documentation</a> on this issue.';
 $string['healthautomaxopt_ok'] = 'Maxima image created at: <tt>{$a->command}</tt>';
@@ -492,6 +500,7 @@ $string['stackInstall_testsuite_intro'] = 'This page allows you to test that the
 $string['stackInstall_testsuite_choose'] = 'Please choose an answer test.';
 $string['stackInstall_testsuite_pass'] = 'All tests passed!';
 $string['stackInstall_testsuite_fail'] = 'Not all tests passed!';
+$string['stackInstall_testsuite_failures'] = 'Tests that failed';
 $string['answertest'] = 'Answer test';
 $string['answertest_help'] = 'An answer test is used to compare two expressions to establish whether they satisfy some mathematical criteria.';
 $string['answertest_link'] = '%%WWWROOT%%/question/type/stack/doc/doc.php/Authoring/Answer_tests.md';
@@ -556,6 +565,7 @@ $string['stackCas_badLogIn']                = 'You have typed in the expression 
 $string['stackCas_CASError']                = 'The CAS returned the following error(s):';
 $string['stackCas_allFailed']               = 'CAS failed to return any evaluated expressions.  Please check your connection with the CAS.';
 $string['stackCas_failedReturn']            = 'CAS failed to return any data.';
+$string['stackCas_failedReturnOne']         = 'CAS failed to return some data.';
 
 // Used in castext.class.php.
 $string['stackCas_tooLong']                 = 'CASText statement is too long. ';
@@ -655,7 +665,7 @@ $string['ATList_wrongentries']          = 'The entries underlined in red below a
 $string['ATMatrix_wrongsz']             = 'Your matrix should be {$a->m0} by {$a->m1}, but it is actually {$a->m2} by {$a->m3}. ';
 $string['ATMatrix_wrongentries']        = 'The entries underlined in red below are those that are incorrect. {$a->m0} ';
 
-$string['ATSet_wrongsz']                = 'Your set should have {$a->m0} different elements, but it is actually has {$a->m1}. ';
+$string['ATSet_wrongsz']                = 'Your set should have {$a->m0} different elements, but it actually has {$a->m1}. ';
 $string['ATSet_wrongentries']           = 'The following entries are incorrect, although they may appear in a simplified form from that which you actually entered. {$a->m0} ';
 
 $string['irred_Q_factored']             = 'The term {$a->m0} should be unfactored, but is not. ';

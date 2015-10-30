@@ -49,14 +49,12 @@ stack_reset(rand_seed) := block(
   /*Reload local settings*/
   STACK_SETUP(true),
 
+  MAXIMA_VERSION_STR:?\*autoconf\-version\*,
   MAXIMA_VERSION:map(parse_string, tokens(?\*autoconf\-version\*, 'digitcharp)),
   MAXIMA_VERSION_NUM:float(MAXIMA_VERSION[2]+MAXIMA_VERSION[3]/10),
 
   /*      */
   OPT_OUTPUT:"LaTeX",
-  /*      */
-  DIV_OP:"//",
-  if MAXIMA_VERSION_NUM>=15.0 then DIV_OP:"/",
 
   true
 )$
@@ -122,7 +120,7 @@ sqrtdenest(a) :=
 )$
 
 /* ********************************** */
-/* Load stack packages                */
+/* Load STACK packages                */
 /* ********************************** */
 
 load("assessment.mac"); /* Currently part of the STACK distribution */
@@ -386,8 +384,6 @@ unary_minus_sort(ex) := block([ex2],
   return(unary_minus_pull(ex2))
 )$
 
-
-
 /* ****************************************************************** */
 /* Evaluate variables are return errors, display, and content forms   */
 /* ****************************************************************** */
@@ -472,7 +468,7 @@ stack_validate(expr, ForbidFloats, LowestTerms, TAns) := block( [simp:false, exs
   /* Try to simply the expression to catch CAS errors */
   exs:errcatch(ev(expr, simp)),
   if exs=[] then return(false),
-  if length(expr)#1 then print(StackAddFeedback("", "CommaError",string(expr), string(setify(expr)))),
+  if length(expr)#1 then print(StackAddFeedback("", "CommaError", string(expr), string(setify(expr)))),
   expr:first(expr),
   /* Check for floats, and if there are any then throw an error */
   if ForbidFloats and anyfloatex(expr) then
@@ -534,7 +530,8 @@ stack_singlevar_make(ex) := block([vars, subs],
   vars:sublist(listofvars(ex), lambda([ex], if slength(string(ex))>1 then true else false)),
   if emptyp(vars) then return(ex),
   vars:maplist(lambda([ex], ex=stack_singlevar_make_helper(ex)), vars),
-  sublis(vars, ex)
+  /* We only need to use associtativity of "*", not "+", but we have to do it over the whole expression. */
+  STACK_assoc(sublis(vars, ex), ["*"])
 )$
 
 
@@ -568,8 +565,8 @@ plot(ex,[ra]) :=  /*stack_web_plot*/
     if not(stringp(alttext)) then (alttext:"ERROR", print("Plot error: the alt tag definition must be a string, but is not."), return("")),
     /* remove from option list ral any non-permitted options */
     kill(y),
-    permitted_options: [y, xlabel, ylabel, legend, color, style, point_type, nticks, logx, logy, axes, box, plot_realpart],
-    if not(emptyp(lvs)) then permitted_options:append([first(lvs)], permitted_options),
+    permitted_options: [y, xlabel, ylabel, label, legend, color, style, point_type, nticks, logx, logy, axes, box, plot_realpart, yx_ratio, xtics, ytics, ztics],
+    if not(emptyp(lvs)) then permitted_options:append([first(lvs)], permitted_options), 
     ralforbid:sublist(ral, lambda([ex], not(member(first(ex), permitted_options)))),
     if not(emptyp(ralforbid)) then
         (print(concat("Plot error: STACK does not currently support the following plot2d options: \\(",string(ralforbid),"\\)")),
@@ -809,15 +806,15 @@ ATNumSigFigs(SA,SBL) := block([Validity, RawMark, FeedBack, AnswerNote, ret, ol,
     if (not(floatnump(SA)) and not(integerp(SA))) then
         return([false, false, StackAddNote("", "ATNumSigFigs_NotDecimal"), StackAddFeedback("", "ATNumSigFigs_NotDecimal")]),
     /* Puts Teacher's answer between 0 & 1 */
-    c0:-floor(log(abs(float(SB)))/log(10)+1),
-    c1:SA*10^(c0+floor(nsf)),
+    c0:-floor(log(abs(float(rat(SB))))/log(10)+1),
+    c1:rat(SA)*10^(c0+floor(nsf)),
     if is(float(c1-floor(c1))=0.0)=false then block(
         Validity:true,
         RawMark:false,
         FeedBack:StackAddFeedback(FeedBack, "ATNumSigFigs_WrongDigits"),
         AnswerNote:StackAddNote(AnswerNote, "ATNumSigFigs_WrongDigits")
-    ),
-    c2:abs(abs(SA*10^(c0+floor(asf)))-abs(SB*10^(c0+floor(asf)))),
+    ), 
+    c2:abs(abs(rat(SA)*10^(c0+floor(asf)))-abs(rat(SB)*10^(c0+floor(asf)))),
     if not(is(c2<0.5)) then block(
         Validity:true,
         RawMark:false,
@@ -1167,9 +1164,9 @@ ATSameTypefun(SA, SB) := block([simp:true, ret],
     SB:errcatch(ev(SB, simp, nouns)),
     if is(SB = [STACKERROR]) then return([false, false, StackAddNote("", "ATSameTypefun_STACKERROR_TAns"), ""]),
     SB:SB[1],
-    /* Start recursive process */
+    /* Start recursive process. */
     ret:ATAlgEquivfun(SA, SB),
-    /* Send back result */
+    /* Send back result. */
     if ret[1] then
         return([true, true, ret[3], ret[4]])
     else
@@ -1573,11 +1570,10 @@ FacForm_UnPick(p,v) := block([negdistrib,PARTSWITCH,fb,i,irred,res],
 
 
 /* Factored form of a polynomial? */
-/* Assumes all coefficients are integers */
+/* Assumes all coefficients are integers. */
 
-ATFacForm(SA,SBL) := block([negdistrib,RawMark,FeedBack,AnswerNote,ret,str,SB,v,SAA,SBB,coefl,facdum],
+ATFacForm(SA,SBL) := block([negdistrib, RawMark, FeedBack, AnswerNote, ret, str, SB, v, SAA, SBB ,coefl, facdum],
     negdistrib:false,
-    /* include facdum:'facdum, as in partfrac? */
     Validity:true, RawMark:true, FeedBack:"", AnswerNote:"",
 
     SAA:errcatch(ev(SA, simp, nouns)),
@@ -1595,7 +1591,7 @@ ATFacForm(SA,SBL) := block([negdistrib,RawMark,FeedBack,AnswerNote,ret,str,SB,v,
     if expressionp(SA)=false then
         return([false,false,StackAddNote("","ATFacForm_SA_not_expression"), StackAddFeedback("","ATAlgEquiv_SA_not_expression")]),
 
-    /* If we don't have an atom as the teacher's variable, then we need to make a substitution */
+    /* If we don't have an atom as the teacher's variable, then we need to make a substitution. */
     if atom(v)#true then (SA:subst(facdum, v, SA),SB:subst(facdum, v, SB), v:facdum),
     ret: FacFormfun(SA,SB,v),
     return(ret)
@@ -1610,7 +1606,7 @@ FacFormfun(SA,SB,v) := block([val, rawmk, ansnote, fb, ret, deg, aequiv, up, con
         ansnote: StackAddNote("", "ATFacForm_error_degreeSA"),
         fb: StackAddFeedback("", "ATFacForm_error_degreeSA")
         ),
-    aequiv:algebraic_equivalence(SA,SB),
+    aequiv:algebraic_equivalence(SA, SB),
     /* An integer answer is always correct. */
     if (integerp(SA)) then
         if (SA=SB) then
@@ -1652,7 +1648,7 @@ FacFormfun(SA,SB,v) := block([val, rawmk, ansnote, fb, ret, deg, aequiv, up, con
     )$
 
 /* An answer test based expandp(sa). */
-/* Note, the SB is a dummy to allow one mechanism for calling functions */
+/* Note, the SB is a dummy to allow one mechanism for calling functions. */
 ATExpanded(SA,SB) :=
     block([keepfloat, Validity, RawMark, FeedBack, AnswerNote, SA1],
     Validity:true, RawMark:false, FeedBack:"", AnswerNote:"", SA1:[],
@@ -1734,7 +1730,7 @@ PartFracfun(sExpr,tExpr,wrt) := block([val, rawmk, ansnote, fb],
                                               topOp: op(sExpr),
                                               list: args(sExpr)
                                               ),
-                    if topOp = DIV_OP then list:[sExpr] else list: args( sExpr ),
+                    if topOp = "/" then list:[sExpr] else list: args( sExpr ),
                     block([sargs,sdenoms],
                                     val:true,
                                     rawmk: true,
@@ -1809,8 +1805,8 @@ PartFracfun(sExpr,tExpr,wrt) := block([val, rawmk, ansnote, fb],
 /*              False if different Variables are used                   */
 /*              True(0) otherwise                                       */
 /* ******************************************************************** */
-ATSingleFrac(SA, SB):= block(
-    [simp:false,negdistrib, validity, rawmk, fb, fbn, ansnote, ret,SAA,SBB],
+ATSingleFrac(SA, SB) := block(
+    [simp:false,negdistrib, validity, rawmk, fb, fbn, ansnote, ret, SAA, SBB],
     negdistrib: false,
     validity:true, rawmk:false, fb:"", ansnote:"",
 
@@ -1833,8 +1829,8 @@ ATSingleFrac(SA, SB):= block(
 
     /* Check for single fraction */
     fbn:"",
-    if op(SA) = DIV_OP then block(
-        if (freeof(DIV_OP,num(SA)) and freeof(DIV_OP,denom(SA))) then block(
+    if op(SA) = "/" then block(
+        if (freeof("/", num(SA)) and freeof("/", denom(SA))) then block(
             rawmk:true,
             ansnote:"ATSingleFrac_true")
         else block(
@@ -1861,13 +1857,13 @@ ATSingleFrac(SA, SB):= block(
 /* Useful function for Partial Fractions                         */
 /*****************************************************************/
 
-divthru(q):=
-       if (not atom(q) and part(q,0)=DIV_OP)
+divthru(q) :=
+       if (not atom(q) and part(q,0)="/")
        then
-         block([num,den,div,quo,rem],
-           num:part(q,1),
-           den:part(q,2),
-           div:divide(num,den) ,
+         block([num, den, div, quo, rem],
+           num:part(q, 1),
+           den:part(q, 2),
+           div:divide(num, den) ,
            quo:div[1],
            rem:div[2],
            quo+rem/ den )
@@ -2004,7 +2000,7 @@ ATCompSquare(SA,SBL) := block([Validity,RawMark,FeedBack,AnswerNote,ret,wrt,SB,S
     ),
 
     /* case: (x-1)^2/k */
-    if opa=DIV_OP and elementp(wrt,setify(listofvars(denom(SA))))#true and atom(num(SA))#true and op(num(SA))="^" and part(num(SA),2)=2 then cform:true,
+    if opa="/" and elementp(wrt,setify(listofvars(denom(SA))))#true and atom(num(SA))#true and op(num(SA))="^" and part(num(SA),2)=2 then cform:true,
 
     /* The sum of somthing */
     if opa="+" then block(
@@ -2356,5 +2352,5 @@ assess(ex1,ex2):=block([ret],
 load(linearalgebra);
 
 /* Stack expects some output */
-stackmaximaversion:2015082100$
-print("[ STACK-Maxima started, library version 2015082100 ]")$
+stackmaximaversion:2015103000$
+print("[ STACK-Maxima started, library version 2015103000 ]")$
