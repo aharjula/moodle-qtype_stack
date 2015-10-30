@@ -38,7 +38,7 @@ require_once(__DIR__ . '/test_base.php');
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @group qtype_stack
  */
-class qtype_stack_walkthrough_state extends qtype_stack_walkthrough_test_base {
+class qtype_stack_walkthrough_state_test extends qtype_stack_walkthrough_test_base {
 
     public function test_state_test_initialisation_and_correct_scene_progression() {
         // Create the stack question 'test_state_1'. Correct answers are {-2,4,5,-3}.
