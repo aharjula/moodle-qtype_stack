@@ -259,7 +259,7 @@ abstract class stack_cas_connection_base implements stack_cas_connection {
 
                 $unparsed[$var] = $val;
                 $offset = $gb[2];
-            } while (($eqpos = strpos($rawresultfragment, '=', $offset)) && ($offset < $rawresultfragmentlen));
+            } while (($offset < $rawresultfragmentlen) && ($eqpos = strpos($rawresultfragment, '=', $offset)));
 
         } else {
             $errors['PREPARSE'] = "There are no ='s in the raw output from the CAS!";

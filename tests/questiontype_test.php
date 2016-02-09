@@ -166,6 +166,9 @@ class qtype_stack_test extends qtype_stack_walkthrough_test_base {
     <defaultgrade>1</defaultgrade>
     <penalty>0.3333333</penalty>
     <hidden>0</hidden>
+    <variabledefinitions>
+      <text></text>
+    </variabledefinitions>
     <questionvariables>
       <text></text>
     </questionvariables>

@@ -74,6 +74,11 @@ abstract class stack_input {
     protected $parameters;
 
     /**
+     * @var cassession with the question level variable definitions for validation
+     */
+    protected $vardefsession;
+
+    /**
      * Constructor
      *
      * @param string $name the name of the input. This is the name of the
@@ -537,4 +542,12 @@ abstract class stack_input {
         return $response;
     }
 
+    /**
+     * Transfers the variabledefinitions from question to input
+     *
+     * @param cassession
+     */
+     public function set_vardefsession($ses) {
+         $this->vardefsession = $ses;
+     }
 }

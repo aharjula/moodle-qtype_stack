@@ -124,6 +124,9 @@ class stack_input_factory {
         // nowhere to store that information in the database.
         unset($types['dropdown']);
 
+        // We do not actually want to create hidden inputs.
+        unset($types['hidden']);
+
         return $types;
     }
 

@@ -1,0 +1,122 @@
+/*  Author Matti Harjula
+    Aalto University
+    Copyright (C) 2015 Matti Harjula
+
+    This program is free software: you can redistribute it or modify
+    it under the terms of the GNU General Public License version two.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>. */
+
+
+/****************************************************************/
+/*  State variable related functions and definitions for STACK  */
+/*                                                              */
+/*  Matti Harjula <matti.harjula@aalto.fi>                      */
+/*  V0.48 August 2015                                           */
+/*                                                              */
+/****************************************************************/
+
+/* We use structures to store the state variables and the state of them. */
+/* The storage of a variable depends greatly on the context (instance or global) */
+/* The PHP-side will ignore the variables that have not changed as saving them is pointless */
+
+/* THE LOGIC OF THE CONTEXTS */
+/* 'instance' is the context of this question with this seed for this user */
+/* 'global' is shared between questions and seeds but belongs to this user */
+/* */
+/* as the values of the 'global' variables can change due to actions elsewhere */
+/* while this 'instance' is being processed all 'global' variables the have */
+/* been mentioned in the code get copied to 'instance' variables when the question */
+/* is instantiated, and get-commands on 'global' variables first check for 'instance' */
+/* variables of the same name as this means that the real values of 'global' */
+/* variables may be hidden there are special functions for acting on those values */
+/* typically you'll want to act on 'global' counters, sets or lists and for these */
+/* task there are specific functions, you may also directly set a 'global' variables */
+/* value but note that you do not know what others have done to it elsewhere... */
+/* */
+/* 'user' is a collection of random read-only details about the user, name */
+/*        and student-id and such not really state but a way to access values */
+/* 'attempt' will eventually contain and so on */
+
+/* Structure to help keeping track of the various details of the variables */
+defstruct (stackstatevar (ctx="global",name="unnamed",value=0,changed=false));
+
+/* And we keep our state vars in a list for later use */
+stackstatevars:[];
+
+/* The state variables come from stack using this function */
+/* and users should not call this function */
+stack_state_load(ctx,name,value) := block([sv],
+ sv:new(stackstatevar),
+ sv@name:name,
+ sv@ctx:ctx,
+ sv@value:value,
+ stackstatevars:append(stackstatevars,[sv]),
+ return(sv)
+);
+
+/* Non functional function only used on stack side to declare variables and their use, including whether they are r or rw */
+stack_state_declare(rw,ctx,name,initial_value) :=block([sv,v],
+ sv:false,
+ for v in stackstatevars do if (is(v@name=name) and is(v@ctx=ctx)) then sv:v,
+ if is(sv=false) then (sv:stack_state_load(ctx,name,initial_value),sv@changed:true),
+ return(false)
+);
+
+/* Gets the value of a state variable */
+stack_state_get(ctx,name) := block([sv,v],
+ /* do we even have that? */
+ sv:false,
+ if is(ctx="global") then (for v in stackstatevars do if (is(v@name=name) and is(v@ctx="instance")) then sv:v),
+ if not is(sv=false) then return(sv@value),
+ for v in stackstatevars do if (is(v@name=name) and is(v@ctx=ctx)) then sv:v,
+ if is(sv=false) then return(false),
+ return(sv@value)
+);
+
+/* Sets the value of a state variable, may create a new variable so watch what you do */
+stack_state_set(ctx,name,value) := block([sv,v],
+ /* do we even have that? */
+ sv:false,
+ for v in stackstatevars do if (is(v@name=name) and is(v@ctx=ctx)) then sv:v,
+ if is(sv=false) then (sv:stack_state_load(ctx,name,value),sv@changed:true),
+ if not is(sv@value=value) then sv@changed:true,
+ sv@value:value,
+ return(value)
+);
+
+/* Increment once for an instance, increments a global variable */
+/* if it has not been incremented before in this instance handy for progress tracking */
+/* The variables context is always 'global' and will always generate additional 'instance' variable */
+/* If the variable is undefined will create it and set to 0 */
+/* Will fail if the length of the name is close to max length, as this will try to expand it */
+stack_state_increment_once(name) := block([sv,v],
+ /* get the variable */
+ sv:false,
+ for v in stackstatevars do if (is(v@name=name) and is(v@ctx="global")) then sv:v,
+ if is(sv=false) then (sv:stack_state_load("global",name,0),sv@changed:true),
+ /* check the lock */
+ v:stack_state_get("instance",sconcat("[il]:",name),0),
+ if is(v=0) then (sv@value:sv@value+1,sv@changed:true,stack_state_set("instance",sconcat("[il]:",name),1))
+);
+
+stack_state_decrement_once(name) := block([sv,v],
+ /* get the variable */
+ sv:false,
+ for v in stackstatevars do if (is(v@name=name) and is(v@ctx="global")) then sv:v,
+ if is(sv=false) then (sv:stack_state_load("global",name,0),sv@changed:true),
+ /* check the lock */
+ v:stack_state_get("instance",sconcat("[dl]:",name),0),
+ if is(v=0) then (sv@value:sv@value-1,sv@changed:true,stack_state_set("instance",sconcat("[dl]:",name),1))
+);
+
+stack_state_full_state(fakevar) :=block(
+ /* This is the way to access the statevariable store, as usign the variable name directly is not an option */
+ return(stackstatevars)
+);

@@ -8,6 +8,7 @@
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Foreign key link to question.id"/>
+        <FIELD NAME="variabledefinitions" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Maxima code that is run when the question is started to initialise variables."/>
         <FIELD NAME="questionvariables" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Maxima code that is run when the question is started to initialise variables."/>
         <FIELD NAME="specificfeedback" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="CAS text for the specific feedback for the question."/>
         <FIELD NAME="specificfeedbackformat" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The FORMAT_... for the specific feedback"/>
@@ -182,6 +183,41 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="questionid-seed" UNIQUE="true" FIELDS="questionid, seed"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="qtype_stack_shared_state" COMMENT="One row for each state variable shared between questions.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="The name of the state variable."/>
+        <FIELD NAME="value" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Maxima code value of the variable."/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The user to whom these shared state variables are tied to."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid-name" UNIQUE="true" FIELDS="userid, name"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="qtype_stack_instance_state" COMMENT="Instance variables for state storage. Basically, question_attempt_step_data that you can actually write to.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="The name of the state variable."/>
+        <FIELD NAME="value" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Maxima code value of the variable."/>
+        <FIELD NAME="attemptstepid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The attempt (basically the first attempt_step of its) that these instance state variables are tied to."/>
+        <FIELD NAME="sequencenumber" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The number of the step that these values are tied to. Ties to the number passed by the browser."/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The user to whom these instance state variables are tied to."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <!-- if we could add an ON DELETE CASCADE for these relationships the world would be better, but whitout them we can't even have these as FOREIGN KEYs...
+            <KEY NAME="attemptstepid" TYPE="foreign" FIELDS="attemptstepid" REFTABLE="question_attempt_steps" REFFIELDS="id"/>
+            <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+        -->
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="attemptstepid-name-sequencenumber" UNIQUE="true" FIELDS="attemptstepid, name, sequencenumber"/>
       </INDEXES>
     </TABLE>
   </TABLES>

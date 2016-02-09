@@ -87,6 +87,7 @@ class qtype_stack extends question_type {
         if (!$options) {
             $options = new stdClass();
             $options->questionid = $fromform->id;
+            $options->variabledefinitions = '';
             $options->questionvariables = '';
             $options->specificfeedback = '';
             $options->prtcorrect = '';
@@ -95,6 +96,7 @@ class qtype_stack extends question_type {
             $options->id = $DB->insert_record('qtype_stack_options', $options);
         }
 
+        $options->variabledefinitions       = $fromform->variabledefinitions;
         $options->questionvariables         = $fromform->questionvariables;
         $options->specificfeedback          = $this->import_or_save_files($fromform->specificfeedback,
                     $context, 'qtype_stack', 'specificfeedback', $fromform->id);
@@ -370,6 +372,7 @@ class qtype_stack extends question_type {
     protected function initialise_question_instance(question_definition $question, $questiondata) {
         parent::initialise_question_instance($question, $questiondata);
 
+        $question->variabledefinitions       = $questiondata->options->variabledefinitions;
         $question->questionvariables         = $questiondata->options->questionvariables;
         $question->questionnote              = $questiondata->options->questionnote;
         $question->specificfeedback          = $questiondata->options->specificfeedback;
@@ -416,6 +419,14 @@ class qtype_stack extends question_type {
             // TODO: Do something with $inputdata->options here.
             $question->inputs[$name] = stack_input_factory::make(
                     $inputdata->type, $inputdata->name, $inputdata->tans, $parameters);
+        }
+
+        // If needed we will inject a new input to the question. This is for the use of the state-system and is being done here to
+        // make things cleaner on the question.php side.
+        if ($question->has_writable_state_variables()) {
+            $question->inputs[qtype_stack_question::SEQN_NAME] = stack_input_factory::make('hidden',
+                    qtype_stack_question::SEQN_NAME, '0', array('mustVerify' => false, 'showValidation' => 0, 'syntaxHint' => '0'));
+            $question->questiontext .= '[[input:' . qtype_stack_question::SEQN_NAME . ']]';
         }
 
         $totalvalue = 0;
@@ -943,6 +954,9 @@ class qtype_stack extends question_type {
         $output = '';
 
         $options = $questiondata->options;
+        $output .= "    <variabledefinitions>\n";
+        $output .= "      " . $format->writetext($options->variabledefinitions, 0);
+        $output .= "    </variabledefinitions>\n";
         $output .= "    <questionvariables>\n";
         $output .= "      " . $format->writetext($options->questionvariables, 0);
         $output .= "    </questionvariables>\n";
@@ -1061,6 +1075,8 @@ class qtype_stack extends question_type {
         $fromform = $format->import_headers($xml);
         $fromform->qtype = $this->name();
 
+        $fromform->variabledefinitions   = $format->getpath($xml, array('#', 'variabledefinitions',
+                                                            0, '#', 'text', 0, '#'), '', true);
         $fromform->questionvariables     = $format->getpath($xml, array('#', 'questionvariables',
                                                             0, '#', 'text', 0, '#'), '', true);
         $fromform->specificfeedback      = $this->import_xml_text($xml, 'specificfeedback', $format, $fromform->questiontextformat);

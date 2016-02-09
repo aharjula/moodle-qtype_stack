@@ -20,6 +20,8 @@
  * @copyright  2012 The University of Birmingham
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+require_once(__DIR__ . '/../stack/cas/cassession.class.php');
+require_once(__DIR__ . '/../stack/cas/casstring.class.php');
 require_once(__DIR__ . '/../stack/answertest/anstest.class.php');
 require_once(__DIR__ . '/test_base.php');
 require_once(__DIR__ . '/../stack/answertest/atdecplaces.class.php');

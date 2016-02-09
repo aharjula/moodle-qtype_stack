@@ -387,11 +387,14 @@ class stack_cas_session {
         return $this->session;
     }
 
-    public function prune_session($len) {
+    public function prune_session($len, $start = 0) {
         if (!is_int($len)) {
             throw new stack_exception('stack_cas_session: prune_session $len must be an integer.');
         }
-        $newsession = array_slice($this->session, 0, $len);
+        if (!is_int($start)) {
+            throw new stack_exception('stack_cas_session: prune_session $start must be an integer.');
+        }
+        $newsession = array_slice($this->session, $start, $len);
         $this->session = $newsession;
     }
 
@@ -490,11 +493,11 @@ class stack_cas_session {
             }
 
             $csnames   .= ", $cleanlabel";
-            // Special handling for the conditionally evaluated strings
+            // Special handling for the conditionally evaluated strings.
             if (count($cs->get_conditions()) > 0) {
                 $conditions = array();
                 foreach($cs->get_conditions() as $cond) {
-                    // No need to evaluate again if it is already evaluated
+                    // No need to evaluate again if it is already evaluated.
                     if (array_search($cond, $this->session) !== false
                             && array_search($cond, $this->session) < array_search($cs, $this->session)) {
                         $conditions[] = str_replace('?', 'QMCHAR', $cond->get_key());
@@ -505,7 +508,8 @@ class stack_cas_session {
 
                 $condition = implode(" and ", $conditions);
 
-                $cascommands .= ", print(\"$i=[ error= [\"), if $condition then cte(\"$label\",errcatch($label:$cmd)) else cte(\"$label\",errcatch($label:false)) ";
+                $cascommands .= ", print(\"$i=[ error= [\"), if $condition then cte(\"$label\",errcatch($label:$cmd))"
+                        . " else cte(\"$label\",errcatch($label:false)) ";
             } else {
                  $cascommands .= ", print(\"$i=[ error= [\"), cte(\"$label\",errcatch($label:$cmd)) ";
             }

@@ -43,6 +43,16 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         implements question_automatically_gradable_with_multiple_parts {
 
     /**
+     * The name of the input that stores the state sequence number.
+     */
+    const SEQN_NAME = '_seqn';
+
+    /**
+     * @var string STACK specific: (state)variables, as defined by the teacher.
+     */
+    public $variabledefinitions;
+
+    /**
      * @var string STACK specific: variables, as authored by the teacher.
      */
     public $questionvariables;
@@ -111,7 +121,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     /**
      * @var array stack_cas_session STACK specific: session of variables.
      */
-    protected $session;
+    protected $session = null;
 
     /**
      * @var array stack_cas_session STACK specific: session of variables.
@@ -122,7 +132,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * @var string instantiated version of questiontext.
      * Initialised in start_attempt / apply_attempt_state.
      */
-    public $questiontextinstantiated;
+    public $questiontextinstantiated = null;
 
     /**
      * @var string instantiated version of specificfeedback.
@@ -172,6 +182,40 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * @var array prt name => result of evaluate_response, if known.
      */
     protected $prtresults = array();
+
+    /**
+     * @var tracks the step number for state selection.
+     */
+    private $sequencenumber = 'unknown';
+
+    /**
+     * @var array containing information about the state variables.
+     */
+    private $statevariables = null;
+
+    /**
+     * @var question_attempt_step the step storing the initial values
+     */
+    private $initialstep = null;
+
+    /**
+     * @var boolean block the state writing if we know that this is a review of a previous step
+     */
+    private $stateconflict = true;
+
+    /**
+     * @var boolean requires question text rerendering. We could do this automatically, but as this should not be done when we are
+     * processing a review request we leave this to the render.php that may actually be the more sensible place to identify if that
+     * is the case.
+     */
+    private $renderrequired = false;
+
+    /**
+     * @var int the offest for state loading, used to define if we are loading the stored end state of this step or the entry state.
+     * Primarilly only used in the context of rendering review views.
+     */
+    private $stateoffset = 0;
+
 
     /**
      * Make sure the cache is valid for the current response. If not, clear it.
@@ -225,6 +269,15 @@ class qtype_stack_question extends question_graded_automatically_with_countback
             return question_engine::make_behaviour('adaptivemultipart', $qa, $preferredbehaviour);
         }
 
+        // State variable based questions cannot work with deferredfeedback as they tend to have inputs that are not show and can't
+        // be filled and that behaviour requires that they are filled. So we force 'adaptive' to allow single state variable using
+        // questions to exist in quizzes using those behaviours. In theory you could have a stateful question where all the inputs
+        // are given on the first step but such would be an edge case.
+        if (($preferredbehaviour == 'deferredfeedback' || $preferredbehaviour == 'deferredcbm') &&
+                $this->has_writable_state_variables()) {
+            return question_engine::make_behaviour('adaptivemultipart', $qa, 'adaptive');
+        }
+
         if ($preferredbehaviour == 'deferredfeedback' && $this->any_inputs_require_validation()) {
             return question_engine::make_behaviour('dfexplicitvaildate', $qa, $preferredbehaviour);
         }
@@ -237,6 +290,8 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function start_attempt(question_attempt_step $step, $variant) {
+        $this->initialstep = $step;
+        $this->stateconflict = false;
 
         // Work out the right seed to use.
         if (!is_null($this->seed)) {
@@ -256,6 +311,12 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         }
         $step->set_qt_var('_seed', $this->seed);
 
+        if ($this->has_writable_state_variables()) {
+            $this->sequencenumber = 'initial';
+        } else {
+            $this->sequencenumber = 'ignored';
+        }
+
         $this->initialise_question_from_seed();
     }
 
@@ -263,10 +324,32 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * Once we know the random seed, we can initialise all the other parts of the question.
      */
     public function initialise_question_from_seed() {
+        // We do not need to intialise twice.
+        if ($this->session !== null) {
+            return;
+        }
+
         // Build up the question session out of all the bits that need to go into it.
+        $session = null;
+        // 0. question variable definitions.
+        $variabledefs = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
+        if ($this->has_state_variables()) {
+            // Load identified state variables and all instance variables.
+            if ($this->sequencenumber != 'unknown') {
+                $this->load_state_variables();
+            }
+
+            // Inject them to the session.
+            $session = new stack_cas_session($this->generate_state_load_commands(), $this->options, $this->seed);
+            $session->merge_session($variabledefs->get_session());
+        } else {
+            $session = $variabledefs->get_session();
+        }
+        $sessionpreamblelength = count($session->get_session());
+
         // 1. question variables.
         $questionvars = new stack_cas_keyval($this->questionvariables, $this->options, $this->seed, 't');
-        $session = $questionvars->get_session();
+        $session->merge_session($questionvars->get_session());
 
         // 2. correct answer for all inputs.
         $response = array();
@@ -293,6 +376,16 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $prtpartiallycorrect = $this->prepare_cas_text($this->prtpartiallycorrect, $session);
         $prtincorrect        = $this->prepare_cas_text($this->prtincorrect, $session);
 
+        // If state variables are present add the retrival command.
+        if ($this->has_state_variables()) {
+            // Actually stored in an variable named 'stackstatevars' but if we access it directly we would
+            // need to add an special case elsewhere.
+            $cs = new stack_cas_casstring('stack_state_full_state(1)');
+            $cs->get_valid('t');
+            $cs->set_key('stackstateexport');
+            $session->add_vars(array($cs));
+        }
+
         // Now instantiate the session.
         $session->instantiate();
         if ($session->get_errors()) {
@@ -303,18 +396,366 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                     $session->get_errors($this->user_can_edit()));
         }
 
+        // If state variables are present store state changes.
+        if ($this->has_writable_state_variables() || $this->sequencenumber == 'initial') {
+            $this->store_state_variables($session->get_value_key('stackstateexport'), true);
+        }
+
         // Finally, store only those values really needed for later.
-        $this->questiontextinstantiated        = $questiontext->get_display_castext();
+        // Questiontext is only updated if it has not been initilaised already.
+        if ($this->questiontextinstantiated === null) {
+            $this->questiontextinstantiated        = $questiontext->get_display_castext();
+        }
         $this->specificfeedbackinstantiated    = $feedbacktext->get_display_castext();
         $this->questionnoteinstantiated        = $notetext->get_display_castext();
         $this->prtcorrectinstantiated          = $prtcorrect->get_display_castext();
         $this->prtpartiallycorrectinstantiated = $prtpartiallycorrect->get_display_castext();
         $this->prtincorrectinstantiated        = $prtincorrect->get_display_castext();
-        $session->prune_session($sessionlength);
+
+        $session->prune_session($sessionlength - $sessionpreamblelength + 1, $sessionpreamblelength);
         $this->session = $session;
 
         // Allow inputs to update themselves based on the model answers.
         $this->adapt_inputs();
+    }
+
+    /**
+     * Loads identified state variables from stores and other sources.
+     */
+    protected function load_state_variables() {
+        global $USER, $DB;
+
+        if (!$this->has_state_variables()) {
+            return;
+        }
+
+        if ($this->sequencenumber == 'initial') {
+            $this->sequencenumber = 0;
+        }
+
+        if (!array_key_exists('lock', $this->statevariables)) {
+            $this->statevariables['lock'] = $this->sequencenumber;
+        } else if ($this->sequencenumber < $this->statevariables['lock']){
+            // We will need to forget stuff if we go back in time. So we do a regen from start.
+            $this->statevariables = null;
+            $this->has_state_variables();
+
+            $this->statevariables['lock'] = $this->sequencenumber;
+        } else if ($this->sequencenumber == $this->statevariables['lock']) {
+            // If the state to be loaded is for the same state as already loaded we do not reload.This allows the state changes
+            // within the question processing to propagate to the future actions during the processing i.e. from PRT to PRT.
+            return;
+        }
+
+        // Always read the initial state, the cost of overwriting it with the real one is minimal.
+        $vars = $this->initialstep->get_qt_data();
+        foreach ($vars as $name => $value) {
+            if (strpos($name, "_isv_") === 0) {
+                $this->statevariables['instance'][substr($name, 5)] = $value;
+            }
+        }
+
+        // Also the global state.
+        if (array_key_exists('global', $this->statevariables) && count($this->statevariables['global']) > 0) {
+            if (!array_key_exists('instance', $this->statevariables)) {
+                $this->statevariables['instance'] = array();
+            }
+            list($insql, $inparams) = $DB->get_in_or_equal(array_keys($this->statevariables['global']));
+            $params = array_merge(array($this->initialstep->get_user_id()), $inparams);
+            $sql = "SELECT * FROM {qtype_stack_shared_state} WHERE userid = ? AND name $insql";
+            $states = $DB->get_records_sql($sql, $params);
+            foreach ($states as $state) {
+                $this->statevariables['global'][$state->name] = $state->value;
+            }
+            // If this is the first load cycle then the global state has not been frozen yet and we need to store it.
+            foreach ($this->statevariables['global'] as $key => $value) {
+                if (!array_key_exists($key, $this->statevariables['instance'])) {
+                    $this->statevariables['instance'][$key] = $value;
+                }
+            }
+        }
+
+        // Then go and get the state of the previous step(s).
+        if ($this->sequencenumber > 0) {
+            $params = array($this->initialstep->get_user_id(), $this->sequencenumber + $this->stateoffset,
+                    $this->initialstep->get_id());
+            // TODO: Write as a join so that we only pick the row with the highest sequencenumber for each name.
+            $sql = "SELECT * FROM {qtype_stack_instance_state} WHERE userid = ? AND NOT sequencenumber > ? AND attemptstepid = ? " .
+                    "ORDER BY sequencenumber";
+            $states = $DB->get_records_sql($sql, $params);
+
+            foreach ($states as $state) {
+                $this->statevariables['instance'][$state->name] = $state->value;
+            }
+        }
+
+        // Inject the user related details if needed.
+        if (array_key_exists('user', $this->statevariables) && count($this->statevariables['user']) > 0) {
+            $user = $USER;
+            if ($user->id != $this->initialstep->get_user_id()) {
+                // When reviewing a different users work we naturally want to see that users data as it was show to the user.
+                $user = core_user::get_user($this->initialstep->get_user_id());
+            }
+
+            if (array_key_exists('id', $this->statevariables['user'])) {
+                $this->statevariables['user']['id'] = $user->id;
+            }
+            if (array_key_exists('username', $this->statevariables['user'])) {
+                $this->statevariables['user']['username'] = stack_utils::php_string_to_maxima_string($user->username);
+            }
+            if (array_key_exists('firstname', $this->statevariables['user'])) {
+                $this->statevariables['user']['firstname'] = stack_utils::php_string_to_maxima_string($user->firstname);
+            }
+            if (array_key_exists('lastname', $this->statevariables['user'])) {
+                $this->statevariables['user']['lastname'] = stack_utils::php_string_to_maxima_string($user->lastname);
+            }
+            if (array_key_exists('idnumber', $this->statevariables['user'])) {
+                $this->statevariables['user']['idnumber'] = stack_utils::php_string_to_maxima_string($user->idnumber);
+            }
+        }
+    }
+
+    /**
+     * Generates the load commands for state variables for injection to a cassession.
+     * @return an array of casstrings.
+     */
+    protected function generate_state_load_commands() {
+        $loadcommands = array();
+        if (!$this->has_state_variables()) {
+            return $loadcommands;
+        }
+        $i = 0;
+        foreach ($this->statevariables as $context => $vars) {
+            if ($context != 'writes' && $context != 'lock') {
+                foreach ($vars as $name => $value) {
+                    if ($name != '***active_step') {
+                        $val = $value;
+                        if ($value == '' || $value == NULL) {
+                            $val = 'false';
+                        }
+                        $cs = new stack_cas_casstring("stack_state_load(\"$context\",\"$name\",$val)");
+                        $cs->get_valid('t');
+                        $cs->set_key("statevalueload$i");
+                        $i++;
+                        $loadcommands[] = $cs;
+                    }
+                }
+            }
+        }
+        return $loadcommands;
+    }
+
+    /**
+     * Re-renders the questiontext-used when the state changes. Or renders it based on previous state.
+     * @param int state offset.
+     */
+    public function update_questiontext($offset = 0) {
+        if (!$this->has_writable_state_variables()||(!$this->renderrequired&&$offset==0)) {
+            // No need to do this.
+            return;
+        }
+        $backupstate = null;
+        $backupseqn = $this->sequencenumber;
+        if ($offset != 0) {
+            $backupstate = $this->statevariables;
+            $this->statevariables = null;
+            $this->sequencenumber = $this->sequencenumber + $offset;
+            $this->load_state_variables();
+        }
+
+        $worksession = new stack_cas_session($this->generate_state_load_commands(), $this->options, $this->seed);
+
+        $variabledefs = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
+        $worksession->merge_session($variabledefs->get_session());
+
+        $questionvars = new stack_cas_keyval($this->questionvariables, $this->options, $this->seed, 't');
+        $worksession->merge_session($questionvars->get_session());
+
+        $questiontext = $this->prepare_cas_text($this->questiontext, $worksession);
+
+        // Now instantiate the session.
+        $worksession->instantiate();
+        if ($worksession->get_errors()) {
+            // We throw an exception here because any problems with the CAS code
+            // up to this point should have been caught during validation when
+            // the question was edited or deployed.
+            throw new stack_exception('qtype_stack_question : CAS error when instantiating the session: ' .
+                    $worksession->get_errors($this->user_can_edit()));
+        }
+
+        $this->questiontextinstantiated = $questiontext->get_display_castext();
+
+        if ($offset !== 0) {
+            $this->statevariables = $backupstate;
+            $this->sequencenumber = $backupseqn;
+        }
+    }
+
+    /**
+     * Extracts the values of statevariables from a value returned by maxima and stores them.
+     * @param string from maxima
+     * @param bool skip the automatic questiontext update, used when the questiontext is already being updated.
+     */
+    protected function store_state_variables($maximavalue,$skipupdatecquestiontext = false) {
+        global $DB;
+
+        // Parse the state returning from CAS.
+        $vars = array('writes' => $this->statevariables['writes']);
+        if (array_key_exists('lock', $this->statevariables)) {
+            $vars['lock'] = $this->statevariables['lock'];
+        }
+        $changes = array();
+        if (strpos($maximavalue, "stackstatevar(") !== false) {
+            $str = $maximavalue;
+            $strings = stack_utils::all_substring_strings($str);
+            foreach ($strings as $key => $string) {
+                $str = str_replace('"'.$string.'"', '[STR:'.$key.']', $str);
+            }
+            $vl = stack_utils::list_to_array($str, false);
+            foreach ($vl as $item) {
+                $params = "[".substr($item, strlen("stackstatevar("), -1)."]";
+                $params = stack_utils::list_to_array($params, false);
+                foreach ($strings as $key => $string) {
+                    foreach ($params as $ind => $param) {
+                        if ($ind == 2) {
+                            // String parameters need to stay strings in this case.
+                            $params[$ind] = str_replace('[STR:'.$key.']', '"'.$string.'"', $param);
+                        } else {
+                            $params[$ind] = str_replace('[STR:'.$key.']', $string, $param);
+                        }
+                    }
+                }
+
+                $context = $params[0];
+                $name = $params[1];
+                $value = $params[2];
+                $changed = ($params[3] == 'true');
+                if (!array_key_exists($context, $vars)) {
+                    $vars[$context] = array();
+                    $changes[$context] = array();
+                }
+                $vars[$context][$name] = $value;
+                if ($changed) {
+                    $changes[$context][$name] = $changed;
+                }
+            }
+        }
+
+        // Switch the local state to the updated one.
+        $this->statevariables = $vars;
+
+        // We will not store these changes if this is not the step at the end of the sequence.
+        if ($this->stateconflict) {
+            return;
+        }
+
+        if (!$skipupdatecquestiontext && ((array_key_exists('global', $changes) && count($changes['global']) > 0) ||
+                (array_key_exists('instance', $changes) && count($changes['instance']) > 0))) {
+            $this->renderrequired = true;
+        }
+
+        // Changes to the global state.
+        if (array_key_exists('global', $changes) && count($changes['global']) > 0) {
+            list($insql, $inparams) = $DB->get_in_or_equal(array_keys($changes['global']));
+            $params = array_merge(array($this->initialstep->get_user_id()), $inparams);
+            $sql = "SELECT * FROM {qtype_stack_shared_state} WHERE userid = ? AND name $insql";
+            $states = $DB->get_records_sql($sql, $params);
+            foreach ($states as $state) {
+                if ($vars['global'][$state->name] !== $state->value) {
+                    $state->value = $vars['global'][$state->name];
+                    $DB->update_record('qtype_stack_shared_state', $state);
+                }
+                unset($changes['global'][$state->name]);
+            }
+            // After all the known ones have been removed we can insert the remaining new ones.
+            if (count($changes['global']) > 0) {
+                $newrecords = array();
+                foreach ($changes['global'] as $name => $value) {
+                    $record = new stdClass();
+                    $record->name = $name;
+                    $record->value = $vars['global'][$name];
+                    $record->userid = $this->initialstep->get_user_id();
+                    $newrecords[] = $record;
+                }
+                $DB->insert_records('qtype_stack_shared_state', $newrecords);
+            }
+        }
+
+        if (!array_key_exists('instance', $vars)) {
+            $vars['instance'] = array();
+        }
+        if (!array_key_exists('instance', $changes)) {
+            $changes['instance'] = array();
+        }
+
+        // Add a magical identifier. Tracks input steps.
+        if (!($this->sequencenumber <= 0 || $this->sequencenumber == 'initial') &&
+                !array_key_exists('***active_step', $vars['instance'])) {
+            $vars['instance']['***active_step'] = 'true';
+            $changes['instance']['***active_step'] = true;
+            $this->sequencenumber = -$this->sequencenumber;
+        }
+
+        if (($this->sequencenumber == 'initial') && count($vars['instance']) > 0) {
+            foreach ($vars['instance'] as $key => $val) {
+                $this->initialstep->set_qt_var("_isv_$key", $val);
+            }
+        } else if (count($changes['instance']) > 0) {
+            $sn = $this->sequencenumber;
+            if ($sn < 0) {
+                $sn = -$sn;
+            }
+
+            if (count($changes['instance']) > 0) {
+                $newrecords = array();
+                foreach ($changes['instance'] as $name => $value) {
+                    $record = new stdClass();
+                    $record->name = $name;
+                    $record->value = $vars['instance'][$name];
+                    $record->userid = $this->initialstep->get_user_id();
+                    $record->sequencenumber = $sn;
+                    $record->attemptstepid = $this->initialstep->get_id();
+                    $newrecords[] = $record;
+                }
+                $DB->insert_records('qtype_stack_instance_state', $newrecords);
+            }
+        }
+    }
+
+    /**
+     * Extracts the sequence number from the input if needed and initialises the system using it if not already initialised.
+     * Basically, loads the state for that sequencenumber if the number is different from the current, also ensures that the
+     * questiontext gets re-rendered for those values, even though it will probably be pointless. This function has to be called
+     * everywhere we see the $response array as we cannot be certain about the order of processing with all the possible behaviours.
+     * @param array the input values for the question
+     */
+    private function identify_sequence_number($response) {
+        global $DB;
+
+        $declared = 0; // 'initial'-step. Basically, the step with the 'unknown' value as we cannot receive something we have not
+        // sent out.
+        if (array_key_exists(self::SEQN_NAME, $response)) {
+            $declared = $response[self::SEQN_NAME];
+        }
+
+        if ($this->sequencenumber != $declared && $this->has_writable_state_variables()) {
+            $this->sequencenumber = $declared;
+            $count = $DB->count_records('qtype_stack_instance_state', array('userid' => $this->initialstep->get_user_id(),
+                    'attemptstepid' => $this->initialstep->get_id(), 'sequencenumber' => $this->sequencenumber,
+                    'name' => '***active_step'));
+
+            // Obviously, we are not going to write on top of a state already there. This must be a normal review or active
+            // interference from the user side.
+            $this->stateconflict = $count > 0;
+
+            // Load the stored state for the declared value.
+            $this->load_state_variables();
+
+            // Update the question-text to match the entry state.
+            $this->renderrequired = true;
+            $this->update_questiontext();
+            $this->renderrequired = false;
+        }
     }
 
     /**
@@ -334,6 +775,12 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 
     public function apply_attempt_state(question_attempt_step $step) {
         $this->seed = (int) $step->get_qt_var('_seed');
+        $this->initialstep = $step;
+
+        if ($this->has_writable_state_variables() && $this->sequencenumber == 'initial') {
+            $this->stateconflict = false;
+        }
+
         $this->initialise_question_from_seed();
     }
 
@@ -386,9 +833,11 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $feedback = '';
         $inputs = stack_utils::extract_placeholders($this->questiontextinstantiated, 'input');
         foreach ($inputs as $name) {
-            $input = $this->inputs[$name];
-            $feedback .= html_writer::tag('p', $input->get_teacher_answer_display($this->session->get_value_key($name),
-                    $this->session->get_display_key($name)));
+            if ($name !== self::SEQN_NAME) {
+                $input = $this->inputs[$name];
+                $feedback .= html_writer::tag('p', $input->get_teacher_answer_display($this->session->get_value_key($name),
+                        $this->session->get_display_key($name)));
+            }
         }
         return stack_ouput_castext($feedback);
     }
@@ -397,6 +846,11 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $expected = array();
         foreach ($this->inputs as $input) {
             $expected += $input->get_expected_data();
+        }
+        // Force additional type restriction for the state sequence parameter. So that we do not need to create a special hidden-
+        // input-class that only accepts integers. In addition to the special hidden hidden-input-class we already created.
+        if ($this->has_writable_state_variables()) {
+            $expected[self::SEQN_NAME] = PARAM_INT;
         }
         return $expected;
     }
@@ -411,9 +865,11 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     public function summarise_response(array $response) {
         $bits = array();
         foreach ($this->inputs as $name => $input) {
-            $state = $this->get_input_state($name, $response);
-            if (stack_input::BLANK != $state->status) {
-                $bits[] = $name . ': ' . $input->contents_to_maxima($state->contents) . ' [' . $state->status . ']';
+            if ($name != self::SEQN_NAME) {
+                $state = $this->get_input_state($name, $response);
+                if (stack_input::BLANK != $state->status) {
+                    $bits[] = $name . ': ' . $input->contents_to_maxima($state->contents) . ' [' . $state->status . ']';
+                }
             }
         }
         return implode('; ', $bits);
@@ -463,9 +919,31 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * @return stack_input_state the result of calling validate_student_response() on the input.
      */
     public function get_input_state($name, $response) {
+        $this->identify_sequence_number($response);
         $this->validate_cache($response, null);
 
         if (array_key_exists($name, $this->inputstates)) {
+            return $this->inputstates[$name];
+        }
+
+        // The state sequence number is a special case. We automatically move it forward to ensure that the next submission has
+        // a new sewuence number.
+        if ($name == self::SEQN_NAME) {
+            $sn = $this->sequencenumber;
+            if ($sn == 'initial') {
+                $sn = 1;
+            } else if ($sn == 'unknown'){
+                if (array_key_exists(self::SEQN_NAME, $response)) {
+                    $sn = $response[self::SEQN_NAME];
+                } else {
+                    $sn = 0;
+                }
+                $sn = 1 + $sn;
+            } else {
+                $sn = 1 + $sn;
+            }
+
+            $this->inputstates[$name] = new stack_input_state(stack_input::SCORE, array($sn), $sn, $sn, '', '', '');
             return $this->inputstates[$name];
         }
 
@@ -477,6 +955,9 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         $forbiddenkeys = $this->session->get_all_keys();
         $teacheranswer = $this->session->get_value_key($name);
         if (array_key_exists($name, $this->inputs)) {
+            $variabledefs = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
+            $this->inputs[$name]->set_vardefsession($variabledefs->get_session());
+
             $this->inputstates[$name] = $this->inputs[$name]->validate_student_response(
                 $response, $this->options, $teacheranswer, $forbiddenkeys);
             return $this->inputstates[$name];
@@ -489,6 +970,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * @return boolean whether any of the inputs are blank.
      */
     public function is_any_input_blank(array $response) {
+        $this->identify_sequence_number($response);
         foreach ($this->inputs as $name => $input) {
             if (stack_input::BLANK == $this->get_input_state($name, $response)->status) {
                 return true;
@@ -498,6 +980,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function is_any_part_invalid(array $response) {
+        $this->identify_sequence_number($response);
         // Invalid if any input is invalid, ...
         foreach ($this->inputs as $name => $input) {
             if (stack_input::INVALID == $this->get_input_state($name, $response)->status) {
@@ -517,7 +1000,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function is_complete_response(array $response) {
-
+        $this->identify_sequence_number($response);
         // If all PRTs are gradable, then the question is complete. (Optional inputs may be blank.)
         foreach ($this->prts as $index => $prt) {
             if (!$this->can_execute_prt($prt, $response, false)) {
@@ -538,6 +1021,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function is_gradable_response(array $response) {
+        $this->identify_sequence_number($response);
         // If any PRT is gradable, then we can grade the question.
         foreach ($this->prts as $index => $prt) {
             if ($this->can_execute_prt($prt, $response, true)) {
@@ -548,6 +1032,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function get_validation_error(array $response) {
+        $this->identify_sequence_number($response);
         if ($this->is_any_part_invalid($response)) {
             // There will already be a more specific validation error displayed.
             return '';
@@ -561,6 +1046,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function grade_response(array $response) {
+        $this->identify_sequence_number($response);
         $fraction = 0;
 
         foreach ($this->prts as $index => $prt) {
@@ -588,6 +1074,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function grade_parts_that_can_be_graded(array $response, array $lastgradedresponses, $finalsubmit) {
+        $this->identify_sequence_number($response);
         $partresults = array();
 
         // At the moment, this method is not written as efficiently as it might
@@ -636,6 +1123,8 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         // Once we are confident enough, we could try switching the nesting
         // of the loops to increase efficiency.
 
+        // TODO: find if this breaks state and if we can rewrite this to work more efficiently.
+
         $fraction = 0;
         foreach ($this->prts as $index => $prt) {
             $accumulatedpenalty = 0;
@@ -675,7 +1164,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * @return bool can this PRT be executed for that response.
      */
     protected function has_necessary_prt_inputs(stack_potentialresponse_tree $prt, $response, $acceptvalid) {
-
+        $this->identify_sequence_number($response);
         foreach ($prt->get_required_variables(array_keys($this->inputs)) as $name) {
             $status = $this->get_input_state($name, $response)->status;
             if (!(stack_input::SCORE == $status || ($acceptvalid && stack_input::VALID == $status))) {
@@ -695,7 +1184,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * @return bool can this PRT be executed for that response.
      */
     protected function can_execute_prt(stack_potentialresponse_tree $prt, $response, $acceptvalid) {
-
+        $this->identify_sequence_number($response);
         // The only way to find out is to actually try evaluating it. This calls
         // has_necessary_prt_inputs, and then does the computation, which ensures
         // there are no CAS errors.
@@ -735,6 +1224,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      *      or a fake state object if the tree cannot be executed.
      */
     public function get_prt_result($index, $response, $acceptvalid) {
+        $this->identify_sequence_number($response);
         $this->validate_cache($response, $acceptvalid);
 
         if (array_key_exists($index, $this->prtresults)) {
@@ -751,10 +1241,33 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 
         $prtinput = $this->get_prt_input($index, $response, $acceptvalid);
 
-        $this->prtresults[$index] = $prt->evaluate_response($this->session,
-                $this->options, $prtinput, $this->seed);
+        $variabledefs = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
+        $variabledefs = $variabledefs->get_session();
+        $variabledefs->merge_session($this->session);
+        $session = $variabledefs;
+
+        if ($this->has_state_variables()) {
+            // Construct the statefull session for this.
+            $loadsession = new stack_cas_session($this->generate_state_load_commands(), $this->options, $this->seed);
+            $loadsession->merge_session($session);
+            $session = $loadsession;
+        }
+
+        $this->prtresults[$index] = $prt->evaluate_response($session, $this->options, $prtinput, $this->seed);
+
+        if ($this->has_writable_state_variables()) {
+            $this->store_state_variables($this->prtresults[$index]->get_cas_context()->get_value_key('stackstateexport'));
+        }
 
         return $this->prtresults[$index];
+    }
+
+    /**
+     * Control the state to be used when working with historical data. Primarilly used for review.
+     * @param the offset to set.
+     */
+    public function set_stateoffset($offset) {
+        $this->stateoffset = $offset;
     }
 
     /**
@@ -802,6 +1315,25 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      */
     public function has_random_variants() {
         return preg_match('~\brand~', $this->questionvariables);
+    }
+
+    /**
+     * @return bool whether this question uses state variables
+     */
+    public function has_state_variables() {
+        if ($this->statevariables == null) {
+            $this->statevariables = array();
+            $kv = new stack_cas_keyval($this->variabledefinitions, $this->options, $this->seed, 't');
+            $this->statevariables = $kv->get_state_references($this->statevariables);
+        }
+        return count($this->statevariables) > 1; // The one is the meta variable countting write operations.
+    }
+
+    public function has_writable_state_variables() {
+        if ($this->has_state_variables()) {
+            return count($this->statevariables['writes']['instance']) > 0 || count($this->statevariables['writes']['global']) > 0;
+        }
+        return false;
     }
 
     public function get_num_variants() {
@@ -902,6 +1434,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     }
 
     public function classify_response(array $response) {
+        $this->identify_sequence_number($response);
         $classification = array();
 
         foreach ($this->prts as $index => $prt) {

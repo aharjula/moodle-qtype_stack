@@ -127,6 +127,15 @@ class stack_potentialresponse_tree_state {
     }
 
     /**
+     * Give access to the already evaluated and stored CAS context, primarily
+     * so that the state can be extracted.
+     * @param cassession the evaluated CAS context
+     */
+    public function get_cas_context() {
+        return $this->cascontext;
+    }
+
+    /**
      * Add another answer note to the list.
      * @param string $note the new answer note.
      */

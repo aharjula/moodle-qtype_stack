@@ -37,21 +37,31 @@ class qtype_stack_renderer extends qtype_renderer {
 
         $response = $qa->get_last_qt_data();
 
-        $questiontext = $question->questiontextinstantiated;
+        // All the replaces need be done after the question has been processed. The generation of the content used for replacing
+        // may change the state of the question.
+        $replaces = array();
 
-        // Replace inputs.
+        // If we are displaying the question for review purposes we want to present the question state as it were shown to
+        // the student and display the inputs given by the student in those fields. For this reason we need to change the state
+        // loading logic.
+        if (strpos($_SERVER['PHP_SELF'],"mod/quiz/reviewquestion.php") !== false ||
+                strpos($_SERVER['PHP_SELF'],"mod/quiz/review.php") !== false) {
+            if ($question->has_writable_state_variables()) {
+                $question->set_stateoffset(-1);
+            }
+        }
+
+        // Replace inputs. With validation and form elements generated from the inputs to those inputs.
         $inputstovaldiate = array();
         $qaid = null;
         foreach ($question->inputs as $name => $input) {
             $fieldname = $qa->get_qt_field_name($name);
             $state = $question->get_input_state($name, $response);
 
-            $questiontext = str_replace("[[input:{$name}]]",
-                    $input->render($state, $fieldname, $options->readonly),
-                    $questiontext);
+            $replaces["[[input:{$name}]]"] = $input->render($state, $fieldname, $options->readonly);
 
             $feedback = $this->input_validation($fieldname . '_val', $input->render_validation($state, $fieldname));
-            $questiontext = str_replace("[[validation:{$name}]]", $feedback, $questiontext);
+            $replaces["[[validation:{$name}]]"] =  $feedback;
 
             $qaid = $qa->get_database_id();
             if ($input->requires_validation()) {
@@ -59,7 +69,7 @@ class qtype_stack_renderer extends qtype_renderer {
             }
         }
 
-        // Replace PRTs.
+        // Replace PRTs. With the feedback generated from the inputs.
         foreach ($question->prts as $index => $prt) {
             $feedback = '';
             if ($options->feedback) {
@@ -73,7 +83,19 @@ class qtype_stack_renderer extends qtype_renderer {
                 $feedback = html_writer::nonempty_tag('div', $result->errors,
                         array('class' => 'stackprtfeedback stackprtfeedback-' . $name));
             }
-            $questiontext = str_replace("[[feedback:{$index}]]", $feedback, $questiontext);
+            $replaces["[[feedback:{$index}]]"] = $feedback;
+        }
+
+        // After all the input processing has been done we can render the questiontext, it may have already been rendered and
+        // will not get rendered twice unless the stored state has been written to.
+        if ($question->has_writable_state_variables()) {
+            $question->update_questiontext();
+        }
+
+        $questiontext = $question->questiontextinstantiated;
+        // Finaly do the replace of placeholders.
+        foreach ($replaces as $placeholder => $content) {
+            $questiontext = str_replace($placeholder, $content, $questiontext);
         }
 
         // Now format the questiontext.  This should be done after the subsitutions of inputs and PRTs.

@@ -150,6 +150,14 @@ class stack_potentialresponse_tree {
             $cascontext->add_vars($node->get_context_variables($key));
         }
 
+        // This needs to be added to the end if we have any state features in use.
+        $session = $cascontext->get_session();
+        if (strpos($session[0]->get_raw_casstring(), "stack_state_load(") === 0) {
+            $cs = new stack_cas_casstring('stack_state_full_state(1)');
+            $cs->get_valid('t');
+            $cs->set_key('stackstateexport');
+            $cascontext->add_vars(array($cs));
+        }
         $cascontext->instantiate();
 
         return $cascontext;
@@ -237,14 +245,7 @@ class stack_potentialresponse_tree {
      * referred to be this PRT are returned.
      */
     public function get_required_variables($variablenames) {
-
-        $rawcasstrings = array();
-        if ($this->feedbackvariables !== null) {
-            $rawcasstrings = $this->feedbackvariables->get_all_raw_casstrings();
-        }
-        foreach ($this->nodes as $node) {
-            $rawcasstrings = array_merge($rawcasstrings, $node->get_required_cas_strings());
-        }
+        $rawcasstrings = $this->get_all_raw_casstrings();
 
         $requirednames = array();
         foreach ($variablenames as $name) {
@@ -256,6 +257,22 @@ class stack_potentialresponse_tree {
             }
         }
         return $requirednames;
+    }
+
+    /**
+     * Returns all casstrings referenced in this tree.
+     * @return array of the casstrings
+     */
+    public function get_all_raw_casstrings() {
+        $rawcasstrings = array();
+        if ($this->feedbackvariables !== null) {
+            $rawcasstrings = $this->feedbackvariables->get_all_raw_casstrings();
+        }
+        foreach ($this->nodes as $node) {
+            $rawcasstrings = array_merge($rawcasstrings, $node->get_required_cas_strings());
+        }
+
+        return $rawcasstrings;
     }
 
     /**

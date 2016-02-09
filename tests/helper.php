@@ -55,7 +55,8 @@ class qtype_stack_test_helper extends question_test_helper {
             'information',  // Neither inputs nor PRTs.
             'survey',       // Inputs, but no PRTs.
             'single_char_vars', // Tests the insertion of * symbols between letter names.
-            'runtime_prt_err' // This generates an error in the PRT at runtime.  With and without guard clause.
+            'runtime_prt_err', // This generates an error in the PRT at runtime.  With and without guard clause.
+            'test_state_1' // Four scenes with three inputs in their own scenes. PRTs and text depend on the state.
         );
     }
 
@@ -72,6 +73,7 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->qtype = question_bank::get_qtype('stack');
         $q->contextid = context_system::instance()->id;
 
+        $q->variabledefinitions = '';
         $q->questionvariables = '';
         $q->specificfeedback = '';
         $q->specificfeedbackformat = FORMAT_HTML;
@@ -94,6 +96,22 @@ class qtype_stack_test_helper extends question_test_helper {
 
         return $q;
     }
+
+    /**
+     * When using test_question_maker::make_question the question initialisation is incomplete from the point of view of state
+     * extensions so we need to do that here.
+     * @param qtype_stack_question without initialised state related details.
+     * @return qtype_stack_question with initialised state related details.
+     */
+    protected static function add_state_details($question) {
+        if ($question->has_writable_state_variables()) {
+            $question->inputs[qtype_stack_question::SEQN_NAME] = stack_input_factory::make('hidden',
+                    qtype_stack_question::SEQN_NAME, '0', array('mustVerify' => false, 'showValidation' => 0, 'syntaxHint' => '0'));
+            $question->questiontext .= '[[input:' . qtype_stack_question::SEQN_NAME . ']]';
+        }
+        return $question;
+    }
+
 
     /**
      * @return qtype_stack_question a very elementary question.
@@ -122,6 +140,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(0, '=', 0, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-F');
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-T');
         $q->prts['firsttree'] = new stack_potentialresponse_tree('firsttree', '', false, 1, null, array($node), 0);
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -160,6 +180,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'PotResTree_1-0-1');
         $q->prts['PotResTree_1'] = new stack_potentialresponse_tree('PotResTree_1', '', true, 1, null, array($node), 0);
 
+        $q = self::add_state_details($q);
+
         return $q;
     }
 
@@ -191,6 +213,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(0, '=', 0, $q->penalty, -1, '', FORMAT_HTML, 'PotResTree_1-0-0');
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'PotResTree_1-0-1');
         $q->prts['PotResTree_1'] = new stack_potentialresponse_tree('PotResTree_1', '', true, 1, null, array($node), 0);
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -294,6 +318,8 @@ class qtype_stack_test_helper extends question_test_helper {
 
         $q->deployedseeds = array();
 
+        $q = self::add_state_details($q);
+
         return $q;
     }
 
@@ -388,6 +414,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->prts['unique']  = new stack_potentialresponse_tree('unique',
                 '', true, 0.25, null, array($node), 0);
 
+        $q = self::add_state_details($q);
+
         return $q;
     }
 
@@ -421,6 +449,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'plots-0-1');
         $q->prts['plots'] = new stack_potentialresponse_tree('plots',
                 '', true, 1, null, array($node), 0);
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -527,6 +557,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->prts['short'] = new stack_potentialresponse_tree('short',
                             '', true, 0.3333333, null, array($node), 0);
 
+        $q = self::add_state_details($q);
+
         return $q;
     }
 
@@ -556,6 +588,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(0, '=', 0, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-F');
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-T');
         $q->prts['firsttree'] = new stack_potentialresponse_tree('firsttree', '', true, 1, null, array($node), 0);
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -630,6 +664,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->prts['Result'] = new stack_potentialresponse_tree('Result', '',
                 true, 1, $feedbackvars->get_session(), array($node0, $node1, $node2), 0);
 
+        $q = self::add_state_details($q);
+
         return $q;
     }
 
@@ -690,6 +726,8 @@ class qtype_stack_test_helper extends question_test_helper {
 
         $q->prts['ans'] = new stack_potentialresponse_tree('ans', '',
                 true, 1, null, array($node0, $node1, $node2), 0);
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -756,6 +794,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'prt1-1-T');
         $q->prts['prt1'] = new stack_potentialresponse_tree('prt1', '', true, 1, null, array($node), 0);
 
+        $q = self::add_state_details($q);
+
         return $q;
     }
 
@@ -784,6 +824,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(0, '=', 0, $q->penalty, -1, '', FORMAT_HTML, 'prt1-1-F');
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'prt1-1-T');
         $q->prts['prt1'] = new stack_potentialresponse_tree('prt1', '', false, 1, null, array($node), 0);
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -815,6 +857,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(0, '=', 0, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-F');
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-T');
         $q->prts['firsttree'] = new stack_potentialresponse_tree('firsttree', '', false, 1, null, array($node), 0);
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -855,6 +899,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'prt2-0-1');
         $q->prts['prt2'] = new stack_potentialresponse_tree('prt1', '', true, 0.5, null, array($node), 0);
 
+        $q = self::add_state_details($q);
+
         return $q;
     }
 
@@ -872,6 +918,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->specificfeedback = '';
         $q->defaultmark = 0;
         $q->length = 0;
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -892,6 +940,8 @@ class qtype_stack_test_helper extends question_test_helper {
 
         $q->inputs['ans1'] = stack_input_factory::make(
                 'algebraic', 'ans1', '2', array('boxWidth' => 15, 'sameType' => false));
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -923,6 +973,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $node->add_branch(0, '=', 0, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-F');
         $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-T');
         $q->prts['firsttree'] = new stack_potentialresponse_tree('firsttree', '', false, 1, null, array($node), 0);
+
+        $q = self::add_state_details($q);
 
         return $q;
     }
@@ -971,6 +1023,121 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->prts['Result'] = new stack_potentialresponse_tree('Result', '',
                 true, 1, $feedbackvars->get_session(), array($node0, $node1, $node2), 0);
 
+        $q = self::add_state_details($q);
+
+        return $q;
+    }
+
+    /**
+     * Simple state-variable using example question.
+     * @return qtype_stack_question
+     */
+    public static function make_stack_question_test_state_1() {
+        $q = self::make_a_stack_question();
+
+        $q->name = 'test-state-1';
+        // Includes a random variable to ensure the correct behaviours get chosen and support certain older state stores.
+        // There are other tests to check for the newer stores.
+        $q->questionvariables = 'zs:{-2,4,5,-3};fakerand:rand(5);';
+        $q->variabledefinitions = 'v1:stack_state_declare("rw","instance","foundOnes",{});';
+        $q->questiontext = '<p>Guess the roots of this polynomial one at a time. The roots are unique integers...</p>
+                [[ if test=\'is(cardinality(stack_state_get("instance","foundOnes"))=0)\']]
+                \[ {@expand(rreduce("*",map("-",[x,x,x,x],listify(zs))))@}=0\]
+                <p>Your quess for the first root is: \(x=\)[[input:ans1]][[validation:ans1]][[feedback:prt1]]</p>
+                [[ elif test=\'is(cardinality(stack_state_get("instance","foundOnes"))=1)\']]
+                <p>One found continue onward with the remainder of the polynomial.</p>
+                \[ {@expand(rreduce("*",map("-",[x,x,x,x],listify(zs))))@}=
+                {@rreduce("*",map("-",[x],listify(stack_state_get("instance","foundOnes"))))@}
+                ({@expand(rreduce("*",map("-",[x,x,x],listify(setdifference(zs,stack_state_get("instance","foundOnes"))))))@})=0
+                \]
+                <p>Then the second one: \(x=\)[[input:ans2]][[validation:ans2]][[feedback:prt2]]</p>
+                [[ elif test=\'is(cardinality(stack_state_get("instance","foundOnes"))=2)\']]
+                <p>Two found continue onward with the remainder of the polynomial.</p>
+                \[ {@expand(rreduce("*",map("-",[x,x,x,x],listify(zs))))@}=
+                {@rreduce("*",map("-",[x,x],listify(stack_state_get("instance","foundOnes"))))@}
+                ({@expand(rreduce("*",map("-",[x,x],listify(setdifference(zs,stack_state_get("instance","foundOnes"))))))@})=0
+                \]
+                <p>Then the third one: \(x=\)[[input:ans3]][[validation:ans3]][[feedback:prt3]]</p>
+                [[ else ]]
+                <p>Well done all the roots have been found.</p>
+                \[ {@expand(rreduce("*",map("-",[x,x,x,x],listify(zs))))@}={@rreduce("*",map("-",[x,x,x,x],listify(zs)))@}=0 \]
+                [[/ if ]]';
+        $q->generalfeedback = '';
+
+        $q->questionnote = '{@fakerand@}';
+
+        $q->inputs['ans1'] = stack_input_factory::make(
+                            'algebraic', 'ans1', '5', array('boxWidth' => 5));
+        $q->inputs['ans2'] = stack_input_factory::make(
+                            'algebraic', 'ans2', '4', array('boxWidth' => 5));
+        $q->inputs['ans3'] = stack_input_factory::make(
+                            'algebraic', 'ans3', '-3', array('boxWidth' => 5));
+
+        $sans = new stack_cas_casstring('elementp(ans1,ts)');
+        $sans->get_valid('t');
+        $tans = new stack_cas_casstring('true');
+        $tans->get_valid('t');
+        $node0 = new stack_potentialresponse_node($sans, $tans, 'AlgEquiv', null);
+        $node0->add_branch(0, '=', 0, $q->penalty, -1, '<p>{@ans1@} is not a root of '.
+                '{@expand(rreduce("*",map("-",[x,x,x,x],listify(zs))))@} try again.</p>', FORMAT_HTML, 'prt1-0-0');
+        $node0->add_branch(1, '=', 1, $q->penalty, -1, 'Correct. Invisible due to state-change.', FORMAT_HTML, 'prt1-0-1');
+        $feedbackvars = new stack_cas_keyval('ts:setdifference(zs,stack_state_get("instance","foundOnes"));'.
+                'dumvar:if elementp(ans1,ts) then '.
+                '(stack_state_set("instance","foundOnes",union(set(ans1),stack_state_get("instance","foundOnes"))));');
+
+        $q->prts['prt1'] = new stack_potentialresponse_tree('prt1',
+                    '', true, 1, $feedbackvars->get_session(), array($node0), 0);
+
+        $sans = new stack_cas_casstring('elementp(ans2,ts)');
+        $sans->get_valid('t');
+        $tans = new stack_cas_casstring('true');
+        $tans->get_valid('t');
+        $node0 = new stack_potentialresponse_node($sans, $tans, 'AlgEquiv', null);
+        $node0->add_branch(0, '=', 0, $q->penalty, 1, '', FORMAT_HTML, 'prt2-0-0');
+        $node0->add_branch(1, '=', 1, $q->penalty, -1, 'Correct. Invisible due to state-change.', FORMAT_HTML, 'prt2-0-1');
+
+        $sans = new stack_cas_casstring('elementp(ans2,zs)');
+        $sans->get_valid('t');
+        $tans = new stack_cas_casstring('true');
+        $tans->get_valid('t');
+        $node1 = new stack_potentialresponse_node($sans, $tans, 'AlgEquiv', null);
+        $node1->add_branch(0, '=', 0, $q->penalty, -1, '<p>{@ans2@} is not a root of '.
+                '{@expand(rreduce("*",map("-",[x,x,x],listify(ts))))@} try again.</p>', FORMAT_HTML, 'prt2-1-0');
+        $node1->add_branch(1, '=', 1, $q->penalty, -1, '<p>You have already given that root, we now ask for the roots of the '.
+                'remainder: {@expand(rreduce("*",map("-",[x,x,x],listify(ts))))@}</p>', FORMAT_HTML, 'prt2-1-1');
+        $feedbackvars = new stack_cas_keyval('ts:setdifference(zs,stack_state_get("instance","foundOnes"));'.
+                'dumvar:if elementp(ans2,ts) then '.
+                '(stack_state_set("instance","foundOnes",union(set(ans2),stack_state_get("instance","foundOnes"))));');
+
+        $q->prts['prt2'] = new stack_potentialresponse_tree('prt2',
+                '', true, 1, $feedbackvars->get_session(), array($node0,$node1), 0);
+
+        $sans = new stack_cas_casstring('elementp(ans3,ts)');
+        $sans->get_valid('t');
+        $tans = new stack_cas_casstring('true');
+        $tans->get_valid('t');
+        $node0 = new stack_potentialresponse_node($sans, $tans, 'AlgEquiv', null);
+        $node0->add_branch(0, '=', 0, $q->penalty, 1, '', FORMAT_HTML, 'prt3-0-0');
+        $node0->add_branch(1, '=', 1, $q->penalty, -1, 'Correct. Invisible due to state-change.', FORMAT_HTML, 'prt3-0-1');
+
+        $sans = new stack_cas_casstring('elementp(ans3,zs)');
+        $sans->get_valid('t');
+        $tans = new stack_cas_casstring('true');
+        $tans->get_valid('t');
+        $node1 = new stack_potentialresponse_node($sans, $tans, 'AlgEquiv', null);
+        $node1->add_branch(0, '=', 0, $q->penalty, -1, '<p>{@ans3@} is not a root of '.
+                '{@expand(rreduce("*",map("-",[x,x],listify(ts))))@} try again.</p>', FORMAT_HTML, 'prt3-1-0');
+        $node1->add_branch(1, '=', 1, $q->penalty, -1, '<p>You have already given that root, we now ask for the roots of the '.
+                'remainder: {@expand(rreduce("*",map("-",[x,x],listify(ts))))@}</p>', FORMAT_HTML, 'prt3-1-1');
+        $feedbackvars = new stack_cas_keyval('ts:setdifference(zs,stack_state_get("instance","foundOnes"));'.
+                'dumvar:if elementp(ans3,ts) then '.
+                '(stack_state_set("instance","foundOnes",union(set(ans3),stack_state_get("instance","foundOnes"))));');
+
+        $q->prts['prt3'] = new stack_potentialresponse_tree('prt3',
+                '', true, 1, $feedbackvars->get_session(), array($node0,$node1), 0);
+
+        $q = self::add_state_details($q);
+
         return $q;
     }
 
@@ -990,6 +1157,7 @@ class qtype_stack_test_helper extends question_test_helper {
 
         $qdata->options = new stdClass();
         $qdata->options->id                        = 0;
+        $qdata->options->variabledefinitions       = '';
         $qdata->options->questionvariables         = '';
         $qdata->options->specificfeedback          = '[[feedback:firsttree]]';
         $qdata->options->specificfeedbackformat    = FORMAT_HTML;
@@ -1108,6 +1276,7 @@ class qtype_stack_test_helper extends question_test_helper {
 
         $qdata->options = new stdClass();
         $qdata->options->id                        = 0;
+        $qdata->options->variabledefinitions       = '';
         $qdata->options->questionvariables         = '';
         $qdata->options->specificfeedback          = '';
         $qdata->options->specificfeedbackformat    = FORMAT_HTML;

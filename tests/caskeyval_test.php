@@ -65,13 +65,16 @@ class stack_cas_keyval_test extends qtype_stack_testcase {
         $cs3->instantiate();
 
         $cs4 = new stack_cas_session(null, null, 123);
-        
+
         $cs5 = new stack_cas_session(array(new stack_cas_casstring('a:system(rm)')), null, 123);
         $cs5->instantiate();
+
         $cs6 = new stack_cas_session(array(new stack_cas_casstring('a:"system(rm)"')), null, 123);
         $cs6->instantiate();
+
         $cs7 = new stack_cas_session(array(new stack_cas_casstring('a:"a:x^2); b:(x+1)^2;$;@;"')), null, 123);
         $cs7->instantiate();
+
         $cases = array(
                 array('', true, $cs0),
                 array("a:x^2 \n b:(x+1)^2", true, $cs1),

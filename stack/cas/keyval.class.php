@@ -155,4 +155,156 @@ class stack_cas_keyval {
         return $this->session;
     }
 
+    public function get_state_references($references = array()) {
+        if (!array_key_exists('writes', $references)) {
+            $references['writes'] = array('instance' => array(), 'global' => array());
+        }
+        if (strpos($this->raw, "stack_state_") !== false) {
+            if (null === $this->valid) {
+                $this->validate();
+            }
+
+            foreach ($this->session->get_session() as $cs) {
+                if (strpos($cs->get_raw_casstring(), "stack_state") !== false) {
+                    $str = $cs->get_raw_casstring();
+                    $strings = stack_utils::all_substring_strings($str);
+                    foreach ($strings as $key => $string) {
+                        $str = str_replace('"'.$string.'"', '[STR:'.$key.']', $str);
+                    }
+                    $i = strpos($str, 'stack_state_');
+                    while ($i !== false) {
+                        $opening = -1;
+                        $closing = $i + 14;
+                        $count = 0;
+                        $in = false;
+                        while ($closing < strlen($str) - 1) {
+                            $closing++;
+                            $c = $str[$closing];
+                            if ($c == '(') {
+                                $count++;
+                                if (!$in) {
+                                    $opening = $closing;
+                                }
+                                $in = true;
+                            }else if ($c == ')') {
+                                $count--;
+                                if ($count == 0 && $in) {
+                                    break;
+                                }
+                            }
+                        }
+                        $fnc = substr($str, $i, $opening - $i);
+                        $params = substr($str, $opening, $closing - $opening + 1);
+                        $params = stack_utils::list_to_array($params, false);
+                        foreach ($strings as $key => $string) {
+                            foreach ($params as $ind => $param) {
+                                if ($ind == 2 && strpos($param, '[STR:'.$key.']')) {
+                                    // String parameters need to stay strings in this case
+                                    $params[$ind] = str_replace('[STR:'.$key.']', '"'.$string.'"', $param);
+                                } else {
+                                    $params[$ind] = str_replace('[STR:'.$key.']', $string, $param);
+                                }
+                            }
+                        }
+
+                        $context = false;
+                        $name = false;
+                        $value = false;
+                        if ($fnc == 'stack_state_declare') {
+                            $access = $params[0];
+                            $context = $params[1];
+                            $name = $params[2];
+                            $value = $params[3];
+                            if (strpos(strtolower($access), 'w') !== false) {
+                                if (!array_key_exists($context, $references['writes'])) {
+                                    $references['writes'][$context] = array();
+                                }
+                                $references['writes'][$context][$name] = true;
+                            }
+                            if (count($params) != 4){
+                                if (!array_key_exists('errors', $references)) {
+                                    $references['errors'] = array();
+                                }
+                                $references['errors'][] = stack_string('functionwithwrongnumberofparameters',
+                                        array('function' => $fnc, 'parameters' => implode(',', $params), 'correct' => 4));
+                            }
+                        } else if ($fnc == 'stack_state_get') {
+                            $context = $params[0];
+                            $name = $params[1];
+                            if (count($params) != 2){
+                                if (!array_key_exists('errors', $references)) {
+                                    $references['errors'] = array();
+                                }
+                                $references['errors'][] = stack_string('functionwithwrongnumberofparameters',
+                                        array('function' => $fnc, 'parameters' => implode(',', $params), 'correct' => 2));
+                            }
+                        } else if ($fnc == 'stack_state_set') {
+                            $context = $params[0];
+                            $name = $params[1];
+                            $value = $params[2];
+                            if (!array_key_exists($context, $references['writes'])) {
+                                $references['writes'][$context] = array();
+                            }
+                            $references['writes'][$context][$name] = true;
+                            if (count($params) != 3){
+                                if (!array_key_exists('errors', $references)) {
+                                    $references['errors'] = array();
+                                }
+                                $references['errors'][] = stack_string('functionwithwrongnumberofparameters',
+                                        array('function' => $fnc, 'parameters' => implode(',', $params), 'correct' => 3));
+                            }
+                        } else if ($fnc == 'stack_state_increment_once' || $fnc == 'stack_state_decrement_once') {
+                            $context = 'global';
+                            $name = $params[0];
+                            $value = 0;
+                            $references['writes']['instance'][$name] = true;
+                            if ($fnc == 'stack_state_increment_once') {
+                                $references['writes']['instance']['[il]:' . $name] = true;
+                            } else if ($fnc == 'stack_state_decrement_once') {
+                                $references['writes']['instance']['[dl]:' . $name] = true;
+                            }
+                            $references['writes']['global'][$name] = true;
+                            if (count($params) != 1){
+                                if (!array_key_exists('errors', $references)) {
+                                    $references['errors'] = array();
+                                }
+                                $references['errors'][] = stack_string('functionwithwrongnumberofparameters',
+                                        array('function' => $fnc, 'parameters' => implode(',', $params), 'correct' => 1));
+                            }
+                        } else if ($fnc == 'stack_state_full_state') {
+                            // A special function somoone might use to debug things.
+                            if (count($params) != 1){
+                                if (!array_key_exists('errors', $references)) {
+                                    $references['errors'] = array();
+                                }
+                                $references['errors'][] = stack_string('functionwithwrongnumberofparameters',
+                                        array('function' => $fnc, 'parameters' => implode(',', $params), 'correct' => 1));
+                            }
+                            $i = strpos($str, 'stack_state_', $i+1);
+                            continue;
+                        }
+
+                        if (!array_key_exists($context, $references)) {
+                            $references[$context] = array();
+                        }
+                        if (!array_key_exists($name, $references[$context])) {
+                            $references[$context][$name] = $value;
+                        }
+
+                        $i = strpos($str, 'stack_state_', $i+1);
+                    }
+                }
+            }
+        }
+        foreach ($references['writes'] as $context => $something) {
+            if(!($context == 'global' || $context == 'instance')) {
+                if (!array_key_exists('errors', $references)) {
+                    $references['errors'] = array();
+                }
+                $references['errors'][] = stack_string('statevariablescopeaccesserror', array('context' => $context));
+            }
+        }
+
+        return $references;
+    }
 }
