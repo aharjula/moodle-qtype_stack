@@ -153,7 +153,7 @@ class stack_potentialresponse_tree {
         // This needs to be added to the end if we have any state features in use.
         $session = $cascontext->get_session();
         if (strpos($session[0]->get_raw_casstring(), "stack_state_load(") === 0) {
-            $cs = new stack_cas_casstring('stack_state_full_state(1)');
+            $cs = new stack_cas_casstring('stack_state_full_state(false)');
             $cs->get_valid('t');
             $cs->set_key('stackstateexport');
             $cascontext->add_vars(array($cs));

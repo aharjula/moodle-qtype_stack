@@ -125,13 +125,17 @@ to the global state which may cause trouble.
 
 ## Limitations on variable names
 
-Due to the way the variables are stored the length of the variable name is limited in the following ways:
+Due to the way the variables are stored the length of the variable name is limited in the following ways, if the char limits are
+unbearable this might be changed but the cost would be more complex analysis tools and limits that only apply to the initialisation
+phase of the question (i.e. in that phase the global values are stored to a data store that is handled by Moodle and that will
+probably newer change):
 
  1. A global-scope variables name should not be over 18-chars,
  2. An instance-scope variables name should not be over 18-chars
  3. If you intend to use the increment/decrement functions with global or instance scope variables they cannot start with the
-    strings "[il]:" or "[dl]:". If you do not use those functions you have five extra chars to use for the var-name
- 4. Otherwise you are free to use everything in ASCII-space that you can push to a Maxima string.
+    strings "[i]" or "[d]". And their length should be less than 16-chars.
+ 4. When using PRT related state variables the instance scope will contain variables named "[X]" where X is the name of the PRT.
+ 5. Otherwise you are free to use everything in ASCII-space that you can push to a Maxima string.
 
 18-char limit also applies to various other STACK-fields.
 
@@ -140,8 +144,20 @@ Due to the way the variables are stored the length of the variable name is limit
 
 Through the `stack_state_get()`-function one can also read (never write) things from the following scopes:
 
-* `'user'`-scope
+* `'user'`-scope, details about the user attempting the question
  * `'id'` = the database id-number of the user as an integer, could be useful as a seed
  * `'firstanme'`, `'lastname'` = strings
  * `'idnumber'` = a string with the student-id fields value
  * `'username'` = a string that could be used as a seed or passed to external tools
+* `'structure'`-scope, details about the structure of the question
+ * `'inputs'` = list of strings naming the inputs of this question, in order of definition
+ * `'prts'` = list of strings naming the PRTs of this question, in order of definition
+ * `'prt-inputs'` = list of lists of strings naming the inputs required by the PRTs, in order of PRT definition then in order of
+   input definition. The order is the same as used when dealing with previous inputs to PRTs.
+* `'prt=?'`-scope, details about the PRT identified by its name.
+ * `'required-inputs'` = list of strings naming the inputs required by this PRT
+ * `'history'` = list of lists which contain the values of the required inputs for all valid inputs this PRT has received
+ * `'previous-input'` = list of values that were given to this PRT during the previous attempt
+ * `'previous-input-?'` = the value of specific input during the previous attempt. Only works for inputs required by this PRT
+ * `'count-attempts'` = integer
+

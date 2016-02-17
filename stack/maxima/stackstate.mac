@@ -18,7 +18,7 @@
 /*  State variable related functions and definitions for STACK  */
 /*                                                              */
 /*  Matti Harjula <matti.harjula@aalto.fi>                      */
-/*  V0.48 August 2015                                           */
+/*  V0.62 August 2015                                           */
 /*                                                              */
 /****************************************************************/
 
@@ -76,7 +76,7 @@ stack_state_get(ctx,name) := block([sv,v],
  if is(ctx="global") then (for v in stackstatevars do if (is(v@name=name) and is(v@ctx="instance")) then sv:v),
  if not is(sv=false) then return(sv@value),
  for v in stackstatevars do if (is(v@name=name) and is(v@ctx=ctx)) then sv:v,
- if is(sv=false) then return(false),
+ if is(sv=false) then return(und),
  return(sv@value)
 );
 
@@ -102,8 +102,8 @@ stack_state_increment_once(name) := block([sv,v],
  for v in stackstatevars do if (is(v@name=name) and is(v@ctx="global")) then sv:v,
  if is(sv=false) then (sv:stack_state_load("global",name,0),sv@changed:true),
  /* check the lock */
- v:stack_state_get("instance",sconcat("[il]:",name),0),
- if is(v=0) then (sv@value:sv@value+1,sv@changed:true,stack_state_set("instance",sconcat("[il]:",name),1))
+ v:stack_state_get("instance",sconcat("[i]",name),0),
+ if is(v=0) then (sv@value:sv@value+1,sv@changed:true,stack_state_set("instance",sconcat("[i]",name),1))
 );
 
 stack_state_decrement_once(name) := block([sv,v],
@@ -112,11 +112,63 @@ stack_state_decrement_once(name) := block([sv,v],
  for v in stackstatevars do if (is(v@name=name) and is(v@ctx="global")) then sv:v,
  if is(sv=false) then (sv:stack_state_load("global",name,0),sv@changed:true),
  /* check the lock */
- v:stack_state_get("instance",sconcat("[dl]:",name),0),
- if is(v=0) then (sv@value:sv@value-1,sv@changed:true,stack_state_set("instance",sconcat("[dl]:",name),1))
+ v:stack_state_get("instance",sconcat("[d]",name),0),
+ if is(v=0) then (sv@value:sv@value-1,sv@changed:true,stack_state_set("instance",sconcat("[d]",name),1))
 );
 
-stack_state_full_state(fakevar) :=block(
- /* This is the way to access the statevariable store, as usign the variable name directly is not an option */
- return(stackstatevars)
+stack_state_full_state(showreadonly) :=block([v],
+ /* This is the way to access the statevariable store, as using the variable name directly is not an option */
+ if is(showreadonly=true) then return(stackstatevars),
+ return(sublist(stackstatevars,lambda([v],is(v@ctx="global") or is(v@ctx="instance"))))
+);
+
+/* Unwraps the condensed PRT-history to usable variables. Not supposed to be called by the user. */
+stack_state_load_prt(prtname) :=block([prti,data,v,c,rawdata,prev],
+    /* Die if called in incomplete context */
+    if is(stack_state_get("structure","prt-inputs")=und) or is(stack_state_get("structure","prts")=und) then return(false),
+
+    /* Find the index of this PRT. */
+    prti:false,
+    c:1,
+    for v in stack_state_get("structure","prts") do (if is(v=prtname) then prti:c,c:c+1),
+    /* The names of the inputs */
+    data:stack_state_get("structure","prt-inputs"),
+    stack_state_set(sconcat("prt=",prtname),"required-inputs",data[prti]),
+    /* The history */
+    data:stack_state_get("instance",sconcat("[",prtname,"]")),
+    /* There is an edge case when nothing has been added to the data and it cannot be primed */
+    if is(data=und) then data:[],
+    /* Split from the string form input data we do not need it anymore */
+    c:length(stack_state_get(sconcat("prt=",prtname),"required-inputs")),
+    rawdata:makelist(first(v),v,data),
+    stack_state_set(sconcat("prt=",prtname),"history",rawdata),
+    stack_state_set(sconcat("prt=",prtname),"count-attempts",length(rawdata)),
+    /* Previous input is the second last element as the current input has already been added */
+    if is(length(rawdata)<2) then prev:makelist(und,v,1,c) else prev:second(reverse(rawdata)),
+    stack_state_set(sconcat("prt=",prtname),"previous-input",prev),
+    c:1,
+    for v in stack_state_get(sconcat("prt=",prtname),"required-inputs") do (
+        stack_state_set(sconcat("prt=",prtname),sconcat("previous-input-",v),prev[c]),
+        c:c+1
+    )
+);
+
+/* Appends new data to PRT-history, again something the user should not call. */
+stack_state_update_prt(prtname,newdata) :=block([data,prev],
+    data:stack_state_get("instance",sconcat("[",prtname,"]")),
+    if is(data=und) then (
+        data:[newdata],
+        stack_state_set("instance",sconcat("[",prtname,"]"),data),
+        /* Update the PRT-state */
+        stack_state_load_prt(prtname)
+    ) else (
+        /* Only append if the input string has changed */
+        prev:last(data),
+        if not is(second(prev)=second(newdata)) then (
+            data:append(data,[newdata]),
+            stack_state_set("instance",sconcat("[",prtname,"]"),data),
+            /* Update the PRT-state */
+            stack_state_load_prt(prtname)
+        )
+    )
 );

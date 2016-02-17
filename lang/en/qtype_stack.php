@@ -104,6 +104,7 @@ $string['referencesundefinedstatevariable'] = 'References state-variable <code>{
 $string['statevariablescopeaccesserror'] = 'State variables of <code>{$a->context}</code>-scope, are not writable do not try to write to them and do not try to declare them writable.';
 $string['statevariableaccesserror'] = 'The state-variable <code>{$a->key}</code> of <code>{$a->context}</code>-scope has been declared as read only but you are writing to it, change the declaration and make sure you are not writing to truly read-only variable.';
 $string['statevariablelongkey'] = 'State-variable <code>{$a->key}</code> of <code>{$a->context}</code>-scope, has a name that is too long, over 18 chars.';
+$string['statelongnameandincrement'] = 'When using global variables and increment/decrement once functions the length of the variable name has additional limitations <code>{$a->key}</code> is <code>{$a->over}</code> chars too long.';
 $string['functionwithwrongnumberofparameters'] = 'The function <code>{$a->function}({$a->parameters})</code> has the wrong number of parameters it should have exactly {$a->correct}.';
 $string['fixdollars'] = 'Fix dollars';
 $string['fixdollarslabel'] = 'Replace <code>$...$</code> with <code>\(...\)</code> and <code>$$...$$</code> with <code>\[...\]</code> on save.';

@@ -216,6 +216,11 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      */
     private $stateoffset = 0;
 
+    /**
+     * @var array a cache for PRT required variable listings.
+     */
+    private $prtrequired = array();
+
 
     /**
      * Make sure the cache is valid for the current response. If not, clear it.
@@ -380,7 +385,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         if ($this->has_state_variables()) {
             // Actually stored in an variable named 'stackstatevars' but if we access it directly we would
             // need to add an special case elsewhere.
-            $cs = new stack_cas_casstring('stack_state_full_state(1)');
+            $cs = new stack_cas_casstring('stack_state_full_state(false)');
             $cs->get_valid('t');
             $cs->set_key('stackstateexport');
             $session->add_vars(array($cs));
@@ -513,6 +518,78 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                 $this->statevariables['user']['idnumber'] = stack_utils::php_string_to_maxima_string($user->idnumber);
             }
         }
+
+        // Inject the structure related details if needed.
+        if ((array_key_exists('structure', $this->statevariables) && count($this->statevariables['structure']) > 0) ||
+                array_key_exists('prt',$this->statevariables)) {
+            if (array_key_exists('structure', $this->statevariables) &&
+                array_key_exists('inputs', $this->statevariables['structure'])) {
+                $this->statevariables['structure']['inputs'] = "[";
+                $first = true;
+                foreach ($this->inputs as $name => $input) {
+                    if ($first) {
+                        $first = false;
+                    } else {
+                        $this->statevariables['structure']['inputs'] .= ',';
+                    }
+                    $this->statevariables['structure']['inputs'] .= stack_utils::php_string_to_maxima_string($name);
+                }
+                $this->statevariables['structure']['inputs'] .= "]";
+            }
+
+            if (array_key_exists('prt',$this->statevariables) || array_key_exists('prts', $this->statevariables['structure'])) {
+                if (!array_key_exists('structure', $this->statevariables)) {
+                    $this->statevariables['structure'] = array();
+                }
+
+                $this->statevariables['structure']['prts'] = "[";
+                $first = true;
+                foreach ($this->prts as $name => $prt) {
+                    if ($first) {
+                        $first = false;
+                    } else {
+                        $this->statevariables['structure']['prts'] .= ',';
+                    }
+                    $this->statevariables['structure']['prts'] .= stack_utils::php_string_to_maxima_string($name);
+                }
+                $this->statevariables['structure']['prts'] .= "]";
+            }
+
+            if (array_key_exists('prt',$this->statevariables) ||
+                array_key_exists('prt-inputs', $this->statevariables['structure'])) {
+                if (!array_key_exists('structure', $this->statevariables)) {
+                    $this->statevariables['structure'] = array();
+                }
+
+                $this->statevariables['structure']['prt-inputs'] = "[";
+                $first = true;
+                foreach ($this->prts as $name => $prt) {
+                    if (!$first) {
+                        $this->statevariables['structure']['prt-inputs'] .= ',';
+                    }
+                    if (!array_key_exists($name, $this->prtrequired)) {
+                        $inputs = array_keys($this->inputs);
+                        if ($this->has_writable_state_variables()) {
+                            unset($inputs[self::SEQN_NAME]);
+                        }
+                        $this->prtrequired[$name] = $prt->get_required_variables($inputs);
+                    }
+                    $first = true;
+                    $this->statevariables['structure']['prt-inputs'] .= "[";
+                    foreach ($this->prtrequired[$name] as $key => $value) {
+                        if (!$first) {
+                            $this->statevariables['structure']['prt-inputs'] .= ',';
+                        } else {
+                            $first = false;
+                        }
+                        $this->statevariables['structure']['prt-inputs'] .= stack_utils::php_string_to_maxima_string($value);
+                    }
+                    $this->statevariables['structure']['prt-inputs'] .= "]";
+                    $first = false;
+                }
+                $this->statevariables['structure']['prt-inputs'] .= "]";
+            }
+        }
     }
 
     /**
@@ -526,7 +603,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         }
         $i = 0;
         foreach ($this->statevariables as $context => $vars) {
-            if ($context != 'writes' && $context != 'lock') {
+            if ($context != 'writes' && $context != 'lock' && $context != 'prt') {
                 foreach ($vars as $name => $value) {
                     if ($name != '***active_step') {
                         $val = $value;
@@ -542,6 +619,19 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                 }
             }
         }
+
+        if (array_key_exists('prt', $this->statevariables)) {
+            foreach ($this->prts as $index => $prt) {
+                if (array_key_exists($prt->get_name(), $this->statevariables['prt'])) {
+                    $cs = new stack_cas_casstring("stack_state_load_prt(" . stack_utils::php_string_to_maxima_string($prt->get_name()) . ")");
+                    $cs->get_valid('t');
+                    $cs->set_key("statevalueload$i");
+                    $i++;
+                    $loadcommands[] = $cs;
+                }
+            }
+        }
+
         return $loadcommands;
     }
 
@@ -599,10 +689,13 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     protected function store_state_variables($maximavalue,$skipupdatecquestiontext = false) {
         global $DB;
 
-        // Parse the state returning from CAS.
+        // Parse the state returning from CAS. But first transfer the details that are not returned by CAS.
         $vars = array('writes' => $this->statevariables['writes']);
         if (array_key_exists('lock', $this->statevariables)) {
             $vars['lock'] = $this->statevariables['lock'];
+        }
+        if (array_key_exists('prt', $this->statevariables)) {
+            $vars['prt'] = $this->statevariables['prt'];
         }
         $changes = array();
         if (strpos($maximavalue, "stackstatevar(") !== false) {
@@ -919,7 +1012,6 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * @return stack_input_state the result of calling validate_student_response() on the input.
      */
     public function get_input_state($name, $response) {
-        $this->identify_sequence_number($response);
         $this->validate_cache($response, null);
 
         if (array_key_exists($name, $this->inputstates)) {
@@ -1165,7 +1257,16 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      */
     protected function has_necessary_prt_inputs(stack_potentialresponse_tree $prt, $response, $acceptvalid) {
         $this->identify_sequence_number($response);
-        foreach ($prt->get_required_variables(array_keys($this->inputs)) as $name) {
+
+        if (!array_key_exists($prt->get_name(), $this->prtrequired)) {
+            $inputs = array_keys($this->inputs);
+            if ($this->has_writable_state_variables()) {
+                unset($inputs[self::SEQN_NAME]);
+            }
+            $this->prtrequired[$prt->get_name()] = $prt->get_required_variables($inputs);
+        }
+
+        foreach ($this->prtrequired[$prt->get_name()] as $name) {
             $status = $this->get_input_state($name, $response)->status;
             if (!(stack_input::SCORE == $status || ($acceptvalid && stack_input::VALID == $status))) {
                 return false;
@@ -1203,8 +1304,16 @@ class qtype_stack_question extends question_graded_automatically_with_countback
     protected function get_prt_input($index, $response, $acceptvalid) {
         $prt = $this->prts[$index];
 
+        if (!array_key_exists($index, $this->prtrequired)) {
+            $inputs = array_keys($this->inputs);
+            if ($this->has_writable_state_variables()) {
+                unset($inputs[self::SEQN_NAME]);
+            }
+            $this->prtrequired[$index] = $prt->get_required_variables($inputs);
+        }
+
         $prtinput = array();
-        foreach ($prt->get_required_variables(array_keys($this->inputs)) as $name) {
+        foreach ($this->prtrequired[$index] as $name) {
             $state = $this->get_input_state($name, $response);
             if (stack_input::SCORE == $state->status || ($acceptvalid && stack_input::VALID == $state->status)) {
                 $prtinput[$name] = $state->contentsmodified;
@@ -1249,6 +1358,32 @@ class qtype_stack_question extends question_graded_automatically_with_countback
         if ($this->has_state_variables()) {
             // Construct the statefull session for this.
             $loadsession = new stack_cas_session($this->generate_state_load_commands(), $this->options, $this->seed);
+            if (array_key_exists('prt', $this->statevariables) && array_key_exists($prt->get_name(), $this->statevariables['prt'])) {
+                // If we are using history features we need to update that history.
+                $newdata = '[';
+                $first = true;
+                $strings = '';
+                $maxima = '';
+                foreach ($this->prtrequired[$prt->get_name()] as $name) {
+                    if ($first) {
+                        $first = false;
+                    } else {
+                        $strings .= ',';
+                        $maxima .= ',';
+                    }
+                    $inputstate = $this->get_input_state($name, $response);
+                    $val = $this->inputs[$name]->contents_to_maxima($inputstate->contents);
+                    $strings .=  stack_utils::php_string_to_maxima_string($val);
+                    $maxima .=  $val;
+                }
+
+                $newdata .= '[' . $maxima . '],[' . $strings . ']]';
+                $prtname = stack_utils::php_string_to_maxima_string($prt->get_name());
+                $cs = new stack_cas_casstring("stack_state_update_prt($prtname,$newdata)");
+                $cs->get_valid('t');
+                $cs->set_key("prthistoryvar");
+                $loadsession->merge_session(new stack_cas_session(array($cs),$this->options, $this->seed));
+            }
             $loadsession->merge_session($session);
             $session = $loadsession;
         }

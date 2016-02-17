@@ -228,6 +228,18 @@ class stack_cas_keyval {
                                 $references['errors'][] = stack_string('functionwithwrongnumberofparameters',
                                         array('function' => $fnc, 'parameters' => implode(',', $params), 'correct' => 4));
                             }
+                            if (strpos($context, 'prt=') === 0) {
+                                // For PRT related values we need to setup some additional features.
+                                $prtname = substr($context, 4);
+                                $references['writes']['instance']['[' . $prtname . ']'] = true;
+                                if (!array_key_exists('structure', $references)) {
+                                    $references['structure'] = array();
+                                }
+                                if (!array_key_exists('prt', $references)) {
+                                    $references['prt'] = array();
+                                }
+                                $references['prt'][$prtname] = true;
+                            }
                         } else if ($fnc == 'stack_state_get') {
                             $context = $params[0];
                             $name = $params[1];
@@ -237,6 +249,15 @@ class stack_cas_keyval {
                                 }
                                 $references['errors'][] = stack_string('functionwithwrongnumberofparameters',
                                         array('function' => $fnc, 'parameters' => implode(',', $params), 'correct' => 2));
+                            }
+                            if (strpos($context, 'prt=') === 0) {
+                                // For PRT related values we need to setup some additional features.
+                                $prtname = substr($context, 4);
+                                $references['writes']['instance']['[' . $prtname . ']'] = true;
+                                if (!array_key_exists('prt', $references)) {
+                                    $references['prt'] = array();
+                                }
+                                $references['prt'][$prtname] = true;
                             }
                         } else if ($fnc == 'stack_state_set') {
                             $context = $params[0];
@@ -259,20 +280,24 @@ class stack_cas_keyval {
                             $value = 0;
                             $references['writes']['instance'][$name] = true;
                             if ($fnc == 'stack_state_increment_once') {
-                                $references['writes']['instance']['[il]:' . $name] = true;
+                                $references['writes']['instance']['[i]' . $name] = true;
                             } else if ($fnc == 'stack_state_decrement_once') {
-                                $references['writes']['instance']['[dl]:' . $name] = true;
+                                $references['writes']['instance']['[d]' . $name] = true;
                             }
                             $references['writes']['global'][$name] = true;
-                            if (count($params) != 1){
+                            if (count($params) != 1) {
                                 if (!array_key_exists('errors', $references)) {
                                     $references['errors'] = array();
                                 }
                                 $references['errors'][] = stack_string('functionwithwrongnumberofparameters',
                                         array('function' => $fnc, 'parameters' => implode(',', $params), 'correct' => 1));
                             }
+                            if (strlen('[i]' . $name) > 18) {
+                                $references['errors'][] = stack_string('statelongnameandincrement', array(
+                                        'length' => strlen('[i]' . $name) - 18));
+                            }
                         } else if ($fnc == 'stack_state_full_state') {
-                            // A special function somoone might use to debug things.
+                            // A special function someone might use to debug things.
                             if (count($params) != 1){
                                 if (!array_key_exists('errors', $references)) {
                                     $references['errors'] = array();
