@@ -401,6 +401,32 @@ YUI.add('moodle-qtype_stack-input', function(Y) {
         // Give up.
         return false;
     };
+
+    M.qtype_stack.init_buttons = function(inputs, qaid, prefix) {
+        for (var i = 0; i < inputs.length; i++) {
+            var name = inputs[i];
+            M.qtype_stack.init_button(name, qaid, prefix);
+        }
+    };
+
+    M.qtype_stack.init_button = function(name, qaid, prefix) {
+        var input = Y.one(document.getElementById(prefix + name + '_button'));
+        if (!input) {
+            // The page does not actually show this button, which is normal in state variable using questions.
+            return;
+        }
+
+        input.on('click', function (e) {
+            var hidden = Y.one(document.getElementById(prefix + name));
+            hidden.set('value', 'true');
+
+            var outerdiv = Y.one('input[name="' + prefix + ':sequencecheck"]').ancestor('div.que.stack');
+            var button = outerdiv.one('.im-controls input.submit');
+            button.simulate('click');
+        });
+
+    };
+
 }, '@VERSION@', {
       requires:['node', 'event-valuechange', 'io', 'json-parse']
 });

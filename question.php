@@ -822,7 +822,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * everywhere we see the $response array as we cannot be certain about the order of processing with all the possible behaviours.
      * @param array the input values for the question
      */
-    private function identify_sequence_number($response) {
+    public function identify_sequence_number($response) {
         global $DB;
 
         $declared = 0; // 'initial'-step. Basically, the step with the 'unknown' value as we cannot receive something we have not

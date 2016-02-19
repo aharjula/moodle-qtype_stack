@@ -51,8 +51,15 @@ class qtype_stack_renderer extends qtype_renderer {
             }
         }
 
+        // Ensure that this gets called in situations where we have no input values in the PRT required fields. Basically, the
+        // return to specific question from the quiz summary has this situation and when multiple questions exist on a page.
+        if ($question->has_writable_state_variables()) {
+            $question->identify_sequence_number($response);
+        }
+
         // Replace inputs. With validation and form elements generated from the inputs to those inputs.
-        $inputstovaldiate = array();
+        $inputstovalidate = array();
+        $buttoninputs = array();
         $qaid = null;
         foreach ($question->inputs as $name => $input) {
             $fieldname = $qa->get_qt_field_name($name);
@@ -65,7 +72,10 @@ class qtype_stack_renderer extends qtype_renderer {
 
             $qaid = $qa->get_database_id();
             if ($input->requires_validation()) {
-                $inputstovaldiate[] = $name;
+                $inputstovalidate[] = $name;
+            }
+            if ($input instanceof stack_button_input) {
+                $buttoninputs[] = $name;
             }
         }
 
@@ -107,7 +117,13 @@ class qtype_stack_renderer extends qtype_renderer {
         // Initialise automatic validation, if enabled.
         if ($qaid && stack_utils::get_config()->ajaxvalidation) {
             $this->page->requires->yui_module('moodle-qtype_stack-input',
-                    'M.qtype_stack.init_inputs', array($inputstovaldiate, $qaid, $qa->get_field_prefix()));
+                    'M.qtype_stack.init_inputs', array($inputstovalidate, $qaid, $qa->get_field_prefix()));
+        }
+
+        // Initialise button inputs, if present.
+        if (count($buttoninputs) > 0) {
+            $this->page->requires->yui_module('moodle-qtype_stack-input',
+                    'M.qtype_stack.init_buttons', array($buttoninputs, $qaid, $qa->get_field_prefix()));
         }
 
         $result = '';
