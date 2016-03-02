@@ -1,0 +1,1162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<quiz>
+<!-- question: 26  -->
+  <question type="stack">
+    <name>
+      <text>Integration by parts</text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<p>In this question we want you to apply integration by parts to this integral:</p>
+\[
+\int{ {@a*b@}\; \mathrm{d}x}
+\]
+<p>As a reminder by integration by parts we mean this:</p>
+\[
+\int{ u(x)v'(x)\;\mathrm{d}x} = u(x)v(x) - \int{ v(x)u'(x) \;\mathrm{d}x}
+\]
+[[ if test='is(stack_state_get("instance","u_1")=false)' ]]
+<p>First select your \(u(x)\) and \(v(x)\) and give them:</p>
+<table>
+<tr><td style="text-align:right;">\(u(x)=\)</td><td>[[input:u1]]</td><td><div>[[validation:u1]]</div></td><td style="text-align:right;">\(v'(x)=\)</td><td>[[input:V1]]</td><td><div>[[validation:V1]]</div></td></tr>
+<tr><td style="text-align:right;">\(u'(x)=\)</td><td>[[input:U1]]</td><td><div>[[validation:U1]]</div></td><td style="text-align:right;">\(v(x)=\)</td><td>[[input:v1]]</td><td><div>[[validation:v1]]</div></td></tr>
+</table>
+[[feedback:select1]]
+[[ else ]]
+<p>You selected:</p>
+
+<table style="margin-left: auto;margin-right: auto;">
+<tr><td style="text-align:right;">\(u(x)=\)</td><td>\({@stack_state_get("instance","u_1")@}\)</td><td>&nbsp;</td><td style="text-align:right;">\(v'(x)=\)</td><td>\({@diff(stack_state_get("instance","v_1"),x)@}\)</td></tr>
+<tr><td style="text-align:right;">\(u'(x)=\)</td><td>\({@diff(stack_state_get("instance","u_1"),x)@}\)</td><td>&nbsp;</td><td style="text-align:right;">\(v(x)=\)</td><td>\({@stack_state_get("instance","v_1")@}\)</td></tr>
+</table>
+
+<p>if we apply those to the formula we get:</p>
+\[
+\int{ {@a*b@}\; \mathrm{d}x} = {@stack_state_get("instance","u_1")*stack_state_get("instance","v_1")@} - \int{ {@diff(stack_state_get("instance","u_1"),x)*stack_state_get("instance","v_1")@}\; \mathrm{d}x}
+\]
+
+[[ if test='is(stack_state_get("instance","badChoice")=true)' ]]
+[[ if test='is(stack_state_get("instance","u_2")=false)' ]]
+<p>Your choice has a problem, the integral still has that inconvenient term ({@x*exp(x)@}) that should have been eliminated by the integration by parts process. Do try to select the functions differently:</p>
+
+<table>
+<tr><td style="text-align:right;">\(u(x)=\)</td><td>[[input:u2]]</td><td><div>[[validation:u2]]</div></td><td style="text-align:right;">\(v'(x)=\)</td><td>[[input:V2]]</td><td><div>[[validation:V2]]</div></td></tr>
+<tr><td style="text-align:right;">\(u'(x)=\)</td><td>[[input:U2]]</td><td><div>[[validation:U2]]</div></td><td style="text-align:right;">\(v(x)=\)</td><td>[[input:v2]]</td><td><div>[[validation:v2]]</div></td></tr>
+</table>
+[[feedback:select2]]
+[[else]]
+<p>Your second selection:</p>
+<table style="margin-left: auto;margin-right: auto;">
+<tr><td style="text-align:right;">\(u(x)=\)</td><td>\({@stack_state_get("instance","u_2")@}\)</td><td>&nbsp;</td><td style="text-align:right;">\(v'(x)=\)</td><td>\({@diff(stack_state_get("instance","v_2"),x)@}\)</td></tr>
+<tr><td style="text-align:right;">\(u'(x)=\)</td><td>\({@diff(stack_state_get("instance","u_2"),x)@}\)</td><td>&nbsp;</td><td style="text-align:right;">\(v(x)=\)</td><td>\({@stack_state_get("instance","v_2")@}\)</td></tr>
+</table>
+
+<p>if we apply those to the formula we get:</p>
+\[
+\int{ {@a*b@}\; \mathrm{d}x} = {@stack_state_get("instance","u_2")*stack_state_get("instance","v_2")@} - \int{ {@diff(stack_state_get("instance","u_2"),x)*stack_state_get("instance","v_2")@}\; \mathrm{d}x}
+\]
+[[/if]]
+[[/if]]
+
+[[ if test='is(stack_state_get("instance","badChoice")=false) or not is(stack_state_get("instance","u_2")=false)' ]]
+<p>Now just integrate that last part:</p>
+
+<p>[[ if test='is(stack_state_get("instance","badChoice")=false)' ]] \(\int{ {@diff(stack_state_get("instance","u_1"),x)*stack_state_get("instance","v_1")@} \mathrm{d}x} = \) 
+[[ else ]]
+\(\int{ {@diff(stack_state_get("instance","u_2"),x)*stack_state_get("instance","v_2")@} \mathrm{d}x} = \) 
+[[/if]] [[input:lastint]]</p>
+<div>[[validation:lastint]]</div>
+[[feedback:lastintegral]]
+[[/if]]
+[[/if]]]]></text>
+    </questiontext>
+    <generalfeedback format="moodle_auto_format">
+      <text></text>
+    </generalfeedback>
+    <defaultgrade>1.0000000</defaultgrade>
+    <penalty>0.1000000</penalty>
+    <hidden>0</hidden>
+    <variabledefinitions>
+      <text><![CDATA[/* This question has a story-line that branches depending on the choices of the student, for this reason we need to have some flags that define the path the student has taken as well as variables storing the values the student has given on the route. */
+dumvar:stack_state_declare("rw","instance","u_1",false);
+dumvar:stack_state_declare("rw","instance","v_1",false);
+dumvar:stack_state_declare("rw","instance","badChoice",false);
+dumvar:stack_state_declare("rw","instance","u_2",false);
+dumvar:stack_state_declare("rw","instance","v_2",false);]]></text>
+    </variabledefinitions>
+    <questionvariables>
+      <text>/* Note that the example function to be integrated affects many things in the other parts of the question.
+You can change it if the new function only requires one integration by parts and if the wrong choice can be defined in the first PRT. */
+a:exp(x)*rand([1,2,3]);
+b:x*rand([1,2,3]);
+modb: a*b/exp(x);
+moda: a*b/modb;
+modlast: integrate(moda*diff(modb,x),x);</text>
+    </questionvariables>
+    <specificfeedback format="html">
+      <text></text>
+    </specificfeedback>
+    <questionnote>
+      <text>{@a*b@}</text>
+    </questionnote>
+    <questionsimplify>1</questionsimplify>
+    <assumepositive>0</assumepositive>
+    <prtcorrect format="html">
+      <text>Correct answer, well done.</text>
+    </prtcorrect>
+    <prtpartiallycorrect format="html">
+      <text>Your answer is partially correct.</text>
+    </prtpartiallycorrect>
+    <prtincorrect format="html">
+      <text>Incorrect answer.</text>
+    </prtincorrect>
+    <multiplicationsign>none</multiplicationsign>
+    <sqrtsign>1</sqrtsign>
+    <complexno>i</complexno>
+    <inversetrig>cos-1</inversetrig>
+    <matrixparens>[</matrixparens>
+    <variantsselectionseed></variantsselectionseed>
+    <input>
+      <name>lastint</name>
+      <type>algebraic</type>
+      <tans>modlast</tans>
+      <boxsize>10</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>u1</name>
+      <type>algebraic</type>
+      <tans>modb</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>U1</name>
+      <type>algebraic</type>
+      <tans>diff(modb,x)</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>u2</name>
+      <type>algebraic</type>
+      <tans>modb</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>U2</name>
+      <type>algebraic</type>
+      <tans>diff(modb,x)</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>v1</name>
+      <type>algebraic</type>
+      <tans>moda</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>V1</name>
+      <type>algebraic</type>
+      <tans>diff(moda,x)</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>v2</name>
+      <type>algebraic</type>
+      <tans>moda</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>V2</name>
+      <type>algebraic</type>
+      <tans>diff(moda,x)</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <prt>
+      <name>lastintegral</name>
+      <value>0.9000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[ti:if stack_state_get("instance","badChoice") then  integrate(stack_state_get("instance","v_2")*diff(stack_state_get("instance","u_2"),x),x) else integrate(stack_state_get("instance","v_1")*diff(stack_state_get("instance","u_1"),x),x);
+finalsol:if stack_state_get("instance","badChoice") then  stack_state_get("instance","v_2")*stack_state_get("instance","u_2") else stack_state_get("instance","v_1")*stack_state_get("instance","u_1");
+finalsol:finalsol-lastint;]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>Int</answertest>
+        <sans>lastint</sans>
+        <tans>ti</tans>
+        <testoptions>[x,NOCONST]</testoptions>
+        <quiet>0</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>lastintegral-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text><![CDATA[<p>Ok. So the final solution is:</p>
+\[ \int{ {@a*b@} \;\mathrm{d}x} = {@finalsol@} \]]]></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>lastintegral-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text></text>
+        </falsefeedback>
+      </node>
+    </prt>
+    <prt>
+      <name>select1</name>
+      <value>0.1000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[derivativescorrect : is(diff(u1,x)=U1) and is(diff(v1,x)=V1);
+correctcombination : is(u1*V1=a*b);
+badChoice: not constantp(U1); /* Works for our case of x*exp(x) */
+
+dumvar: if is(derivativescorrect and correctcombination = true) then (stack_state_set("instance","u_1",u1),stack_state_set("instance","v_1",v1),stack_state_set("instance","badChoice",badChoice));]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>derivativescorrect</sans>
+        <tans>true</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>0.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>1</truenextnode>
+        <trueanswernote>select1-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>select1-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text><![CDATA[<p>The functions you have chosen do not match the derivatives you have chosen. Do check them.</p>]]></text>
+        </falsefeedback>
+      </node>
+      <node>
+        <name>1</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>correctcombination</sans>
+        <tans>true</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>+</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>2</truenextnode>
+        <trueanswernote>select1-2-T</trueanswernote>
+        <truefeedback format="html">
+          <text></text>
+        </truefeedback>
+        <falsescoremode>-</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>select1-2-F</falseanswernote>
+        <falsefeedback format="html">
+          <text><![CDATA[<p>Your functions \(u(x)={@u1@}\) and \(v'(x)={@V1@}\) do not actually multiply to generate the required \({@a*b@}\)</p>]]></text>
+        </falsefeedback>
+      </node>
+      <node>
+        <name>2</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>badchoice</sans>
+        <tans>true</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>-</truescoremode>
+        <truescore>0.1000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>select1-3-T</trueanswernote>
+        <truefeedback format="html">
+          <text><![CDATA[<p>Troublesome choice, will be slightly penalised. Also you are not seeing this, unless this is the review.</p>]]></text>
+        </truefeedback>
+        <falsescoremode>-</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>select1-3-F</falseanswernote>
+        <falsefeedback format="html">
+          <text></text>
+        </falsefeedback>
+      </node>
+    </prt>
+    <prt>
+      <name>select2</name>
+      <value>0.0000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[derivativescorrect : is(diff(u2,x)=U2) and is(diff(v2,x)=V2);
+correctcombination : is(u2*V2=a*b);
+badChoice: not constantp(U2); /* Works for our case of x*exp(x) */
+
+dumvar: if is(derivativescorrect and correctcombination and not badChoice = true) then (stack_state_set("instance","u_2",u2),stack_state_set("instance","v_2",v2));]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>derivativescorrect</sans>
+        <tans>true</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>1</truenextnode>
+        <trueanswernote>select2-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>select2-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text><![CDATA[<p>The functions you have chosen do not match the derivatives you have chosen. Do check them.</p>]]></text>
+        </falsefeedback>
+      </node>
+      <node>
+        <name>1</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>correctcombination</sans>
+        <tans>true</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>+</truescoremode>
+        <truescore>0.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>2</truenextnode>
+        <trueanswernote>select2-2-T</trueanswernote>
+        <truefeedback format="html">
+          <text></text>
+        </truefeedback>
+        <falsescoremode>-</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>select2-2-F</falseanswernote>
+        <falsefeedback format="html">
+          <text><![CDATA[<p>Your functions \(u(x)={@u2@}\) and \(v'(x)={@V2@}\) do not actually multiply to generate the required \({@a*b@}\)</p>]]></text>
+        </falsefeedback>
+      </node>
+      <node>
+        <name>2</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>badChoice</sans>
+        <tans>true</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>+</truescoremode>
+        <truescore>0.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>select2-3-T</trueanswernote>
+        <truefeedback format="html">
+          <text><![CDATA[<p>That choice is faulty in the same way as your previous selections, With these selections your integral would still have \({@v2*U2@}\) inside it.</p>]]></text>
+        </truefeedback>
+        <falsescoremode>-</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>select2-3-F</falseanswernote>
+        <falsefeedback format="html">
+          <text></text>
+        </falsefeedback>
+      </node>
+    </prt>
+  </question>
+
+<!-- question: 27  -->
+  <question type="stack">
+    <name>
+      <text><![CDATA[Integration by parts (recursive&infinite)]]></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<p>In this question we want you to apply integration by parts to this integral:</p>
+\[
+\int{ {@theone*theother@}\;\mathrm{d}x}
+\]
+<p>As a reminder by integration by parts we mean this:</p>
+\[
+\int{ u(x)v'(x)\;\mathrm{d}x} = u(x)v(x) - \int{ v(x)u'(x)\;\mathrm{d}x}
+\]
+[[ if test='is(stack_state_get("instance","phase")="select")']]
+[[ if test='is(stack_state_get("instance","integratedTerms")=[])' ]]
+<p>To start the process select \(u(x)\) and \(v'(x)\) for the initial integral \(\int{ {@theone*theother@} \;\mathrm{d}x}\).</p>
+[[else]]
+<p>We are now continuing the process from the previous step and you are integrating the following integral, select \(u(x)\) and \(v'(x)\) for it:</p> 
+\[\int{{@last(stack_state_get("instance","integratedTerms"))@}\;\mathrm{d}x}\]
+[[/if]]
+<table>
+<tr><td style="text-align:right;">\(u(x)=\)</td><td>[[input:ansu]]</td><td><div>[[validation:ansu]]</div></td><td style="text-align:right;">\(v'(x)=\)</td><td>[[input:ansV]]</td><td><div>[[validation:ansV]]</div></td></tr>
+<tr><td style="text-align:right;">\(u'(x)=\)</td><td>[[input:ansU]]</td><td><div>[[validation:ansU]]</div></td><td style="text-align:right;">\(v(x)=\)</td><td>[[input:ansv]]</td><td><div>[[validation:ansv]]</div></td></tr>
+</table>
+[[feedback:select]]
+[[ elif test='is(stack_state_get("instance","phase")="integrate")']]
+<p>Your selection placed to the formula leads to this:</p>
+<table style="margin-left: auto;margin-right: auto;">
+<tr><td style="text-align:right;">\(u(x)=\)</td><td>\({@stack_state_get("instance","u")@}\)</td><td>&nbsp;</td><td style="text-align:right;">\(v'(x)=\)</td><td>\({@diff(stack_state_get("instance","v"),x)@}\)</td></tr>
+<tr><td style="text-align:right;">\(u'(x)=\)</td><td>\({@diff(stack_state_get("instance","u"),x)@}\)</td><td>&nbsp;</td><td style="text-align:right;">\(v(x)=\)</td><td>\({@stack_state_get("instance","v")@}\)</td></tr>
+</table>
+\[
+[[ if test='is(length(stack_state_get("instance","integratedTerms"))<2)' ]]
+\int{ {@theone*theother@} \mathrm{d}x} =
+[[else]]
+\int{ {@second(reverse(stack_state_get("instance","integratedTerms")))@}\;\mathrm{d}x} =
+[[/if]]
+ {@stack_state_get("instance","u")*stack_state_get("instance","v")@} - \int{ {@diff(stack_state_get("instance","u"),x)*stack_state_get("instance","v")@}\;\mathrm{d}x}
+\]
+<p>Which basically means that you will have to integrate this:</p>
+\[
+\int{ {@diff(stack_state_get("instance","u"),x)*stack_state_get("instance","v")@}\;\mathrm{d}x}
+\]
+<p>You now have a few options on how to continue, you can either just give the value of that integral and if it is correct this whole process ends or you can repeat the same integration by parts process on that integral and hopefully generate an easier integral through it. You could also undo your selection and try again with another \(u(x)\) and \(v'(x)\).</p>
+[[ if test='is(stack_state_get("instance","consecutiveBad")>2)' ]]
+<p><i>Have you noticed how the order of that term in the integral grows? Surely, the integral would be simpler to solve if that order went down instead?</i></p>
+[[/if]]
+
+[[ if test='is(diff(stack_state_get("instance","u"),x)*stack_state_get("instance","v")=0)' ]]
+<p><i>You are now integrating a constant and not just any constant but zero, maybe now would be a good point to stop iterating and just integrate it? You should have stopped at the previous step, but maybe you learned something from this extra round.</i></p>
+[[/if]]
+
+<p>\(\int{ {@diff(stack_state_get("instance","u"),x)*stack_state_get("instance","v")@}\;\mathrm{d}x} = \) [[input:ansint]]&nbsp;&nbsp;[[input:ansrepeat]]&nbsp;&nbsp;[[input:ansundo]]</p>
+<div>[[validation:ansint]]</div>
+[[feedback:integrate]]
+
+[[ elif test='is(stack_state_get("instance","phase")="end")']]
+<p>Well done you have reached the end of that integration. And shown the following things:</p>
+
+[[ define itera="theone*theother" /]]
+<table style="margin-left: auto;margin-right: auto;">
+[[ foreach a='stack_state_get("instance","integratedTerms")' b='stack_state_get("instance","ejectedTerms")' ]]
+<tr>
+<td style="text-align:right;">\(\int{{@itera@}\;\mathrm{d}x}=\)</td><td>\({@b@}-\int{{@a@}\;\mathrm{d}x}\)</td>
+</tr>
+[[ define itera="a" /]]
+[[/foreach]]
+<tr>
+<td style="text-align:right;">\(\int{{@last(stack_state_get("instance","integratedTerms"))@}\;\mathrm{d}x}=\)</td><td>\({@integrate(diff(stack_state_get("instance","u"),x)*stack_state_get("instance","v"),x)@}+C\)</td>
+</tr>
+<td style="text-align:right;">\(\int{{@theone*theother@}\;\mathrm{d}x}=\)</td><td>\({@expand(integrate(theone*theother,x))@}+C\)</td>
+</tr>
+</table>
+<p>Note that you will probably have plenty of constants of integration from all those steps but they can be combined.</p>
+[[/if]]
+
+
+[[if test="false"]]
+The trash-can, where we place all those mandatory elements that will not be used.
+[[validation:ansrepeat]]
+[[validation:ansundo]]
+[[feedback:undo]]
+[[feedback:repeat]]
+[[/if]]]]></text>
+    </questiontext>
+    <generalfeedback format="moodle_auto_format">
+      <text></text>
+    </generalfeedback>
+    <defaultgrade>1.0000000</defaultgrade>
+    <penalty>0.1000000</penalty>
+    <hidden>0</hidden>
+    <variabledefinitions>
+      <text><![CDATA[/* This question has a infinite story-line that branches depending on the choices of the student, for this reason we need to have some flags that define the path the student has taken as well as variables storing the values the student has given on the route. */
+dumvar:stack_state_declare("rw","instance","u",false); /* Define the current choices. */
+dumvar:stack_state_declare("rw","instance","v",false);
+dumvar:stack_state_declare("rw","instance","consecutiveBad",0); /* How long is the streak? */
+dumvar:stack_state_declare("rw","instance","consecutiveGood",0); /* How long is the streak? */
+dumvar:stack_state_declare("rw","instance","ejectedTerms",[]); /* The u(x)*v(x) terms. */
+dumvar:stack_state_declare("rw","instance","integratedTerms",[]); /* The u'(x)*v(x) terms. */
+dumvar:stack_state_declare("rw","instance","phase",false); /* "select", "integrate", "end" */]]></text>
+    </variabledefinitions>
+    <questionvariables>
+      <text><![CDATA[theone:exp(x); /* The sensible choice for v(x). */
+theother:rand([2,3,4,5,6])*x^rand([2,3,4]); /* The power here is obviously something you do not want to rise too high. */
+dumvar:if is(stack_state_get("instance","phase")=false) then stack_state_set("instance","phase","select");]]></text>
+    </questionvariables>
+    <specificfeedback format="html">
+      <text></text>
+    </specificfeedback>
+    <questionnote>
+      <text>{@theone*theother@}</text>
+    </questionnote>
+    <questionsimplify>1</questionsimplify>
+    <assumepositive>0</assumepositive>
+    <prtcorrect format="html">
+      <text>Correct answer, well done.</text>
+    </prtcorrect>
+    <prtpartiallycorrect format="html">
+      <text>Your answer is partially correct.</text>
+    </prtpartiallycorrect>
+    <prtincorrect format="html">
+      <text>Incorrect answer.</text>
+    </prtincorrect>
+    <multiplicationsign>none</multiplicationsign>
+    <sqrtsign>1</sqrtsign>
+    <complexno>i</complexno>
+    <inversetrig>cos-1</inversetrig>
+    <matrixparens>[</matrixparens>
+    <variantsselectionseed></variantsselectionseed>
+    <input>
+      <name>ansint</name>
+      <type>algebraic</type>
+      <tans>nomodelanswer</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>ansrepeat</name>
+      <type>button</type>
+      <tans><![CDATA["Repeat integration by parts."]]></tans>
+      <boxsize>15</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>0</mustverify>
+      <showvalidation>0</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>ansu</name>
+      <type>algebraic</type>
+      <tans>nomodelanswer</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>0</mustverify>
+      <showvalidation>0</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>ansU</name>
+      <type>algebraic</type>
+      <tans>nomodelanswer</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>0</mustverify>
+      <showvalidation>0</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>ansundo</name>
+      <type>button</type>
+      <tans><![CDATA["Undo this selection."]]></tans>
+      <boxsize>15</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>0</mustverify>
+      <showvalidation>0</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>ansv</name>
+      <type>algebraic</type>
+      <tans>nomodelanswer</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>0</mustverify>
+      <showvalidation>0</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>ansV</name>
+      <type>algebraic</type>
+      <tans>nomodelanswer</tans>
+      <boxsize>7</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>0</mustverify>
+      <showvalidation>0</showvalidation>
+      <options></options>
+    </input>
+    <prt>
+      <name>integrate</name>
+      <value>1.0000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[ti:integrate(stack_state_get("instance","v")*diff(stack_state_get("instance","u"),x),x);
+/* We will need to do a state transfer based on the result of the answer test so we need that result here */
+testresult:ATInt(ansint,[ti,[x,NOCONST]]);
+dumvar: if second(testresult) then stack_state_set("instance","phase","end");]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>Int</answertest>
+        <sans>ansint</sans>
+        <tans>ti</tans>
+        <testoptions>[x,NOCONST]</testoptions>
+        <quiet>0</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>integrate-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>integrate-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text></text>
+        </falsefeedback>
+      </node>
+    </prt>
+    <prt>
+      <name>repeat</name>
+      <value>0.0000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[dumvar:ansrepeat; /* Tie to the repeat button. */
+dumvar:stack_state_set("instance","phase","select");]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>1</sans>
+        <tans>1</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>repeat-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>repeat-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text></text>
+        </falsefeedback>
+      </node>
+    </prt>
+    <prt>
+      <name>select</name>
+      <value>0.0000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[thingToIntegrate: if is(stack_state_get("instance","integratedTerms")=[]) then theone*theother else last(stack_state_get("instance","integratedTerms"));
+derivativescorrect : is(diff(ansu,x)=ansU) and is(diff(ansv,x)=ansV);
+correctcombination : is(ansu*ansV=thingToIntegrate);
+badChoice: not is(coeff(ansu,exp(x))=0);
+/* If basics are okay we write to state. */
+dumvar:if derivativescorrect and correctcombination and is(stack_state_get("instance","phase")="select") and badChoice then (stack_state_set("instance","consecutiveBad",1+stack_state_get("instance","consecutiveBad")),stack_state_set("instance","consecutiveGood",0));
+dumvar:if derivativescorrect and correctcombination and is(stack_state_get("instance","phase")="select") and not badChoice then (stack_state_set("instance","consecutiveGood",1+stack_state_get("instance","consecutiveGood")),stack_state_set("instance","consecutiveBad",0));
+dumvar:if derivativescorrect and correctcombination and is(stack_state_get("instance","phase")="select") then (stack_state_set("instance","u",ansu),stack_state_set("instance","v",ansv),stack_state_set("instance","phase","integrate"),stack_state_set("instance","ejectedTerms",append(stack_state_get("instance","ejectedTerms"),[ansu*ansv])),stack_state_set("instance","integratedTerms",append(stack_state_get("instance","integratedTerms"),[ansU*ansv])));
+]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>derivativescorrect</sans>
+        <tans>true</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>0.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>1</truenextnode>
+        <trueanswernote>select-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>select-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text><![CDATA[<p>The functions you have chosen do not match the derivatives you have chosen. Do check them.</p>]]></text>
+        </falsefeedback>
+      </node>
+      <node>
+        <name>1</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>correctcombination</sans>
+        <tans>true</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>select-2-T</trueanswernote>
+        <truefeedback format="html">
+          <text></text>
+        </truefeedback>
+        <falsescoremode>-</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>select-2-F</falseanswernote>
+        <falsefeedback format="html">
+          <text><![CDATA[<p>Your functions \(u(x)={@ansu@}\) and \(v'(x)={@ansV@}\) do not actually multiply to generate the required \({@thingToIntegrate@}\)</p>]]></text>
+        </falsefeedback>
+      </node>
+    </prt>
+    <prt>
+      <name>undo</name>
+      <value>0.0000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[dumvar:ansundo; /* Tie this tree to the undo button.*/
+dumvar:if is(stack_state_get("instance","phase")="integrate") then (stack_state_set("instance","phase","select"),stack_state_set("instance","integratedTerms",rest(stack_state_get("instance","integratedTerms"),-1)),stack_state_set("instance","ejectedTerms",rest(stack_state_get("instance","ejectedTerms"),-1)));]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>1</sans>
+        <tans>1</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>undo-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>undo-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text></text>
+        </falsefeedback>
+      </node>
+    </prt>
+  </question>
+
+<!-- question: 25  -->
+  <question type="stack">
+    <name>
+      <text>Zero hunt</text>
+    </name>
+    <questiontext format="moodle_auto_format">
+      <text><![CDATA[[[if test='is(cardinality(stack_state_get("instance","foundOnes"))=0)']]
+<p>Guess the roots of this polynomial one at a time. The roots are unique integers...</p>
+\[ {@fullPoly=0@} \]
+<p>First root: [[input:ans1]]</p><div>[[validation:ans1]][[feedback:prt1]]</div>
+
+[[elif test='is(cardinality(stack_state_get("instance","foundOnes"))=1)']]
+<p>Guess the roots of this polynomial one at a time. Ok. so the first one has been solved, do continue.</p>
+\[ {@fullPoly@}=[[foreach r='stack_state_get("instance","foundOnes")']]({#x-r#})[[/foreach]]({@expand(rreduce("*",map("-",[x,x,x],listify(setdifference(zs,stack_state_get("instance","foundOnes"))))))@})=0 \]
+<p>Next root: [[input:ans2]]</p><div>[[validation:ans2]][[feedback:prt2]]</div>
+
+[[ elif test='is(cardinality(stack_state_get("instance","foundOnes"))=2)']]
+<p>Guess the roots of this polynomial one at a time. Ok. so the first and the second one  has been solved, do continue.</p>
+\[ {@fullPoly@}=[[ foreach r='stack_state_get("instance","foundOnes")']]({#x-r#})[[/foreach]]({@expand(rreduce("*",map("-",[x,x],listify(setdifference(zs,stack_state_get("instance","foundOnes"))))))@})=0 \]
+<p>Next root: [[input:ans3]]</p><div>[[validation:ans3]][[feedback:prt3]]</div>
+
+[[ elif test='is(cardinality(stack_state_get("instance","foundOnes"))=3)']]
+<p>Congratulations you found three of the four roots and after division we got the last root. And as we only asked for three this is the end of this question.</p>
+\[ {@fullPoly@}=[[foreach r='stack_state_get("instance","foundOnes")']]({#x-r#})[[/foreach]]({@expand(rreduce("*",map("-",[x],listify(setdifference(zs,stack_state_get("instance","foundOnes"))))))@})=0 \]<p><i>When we have reached the end and there are no inputs the 'check'-button is a bit pointless but how could we get rid of that... just ignore it.</i></p>
+[[/if]]]]></text>
+    </questiontext>
+    <generalfeedback format="moodle_auto_format">
+      <text></text>
+    </generalfeedback>
+    <defaultgrade>1.0000000</defaultgrade>
+    <penalty>0.1000000</penalty>
+    <hidden>0</hidden>
+    <variabledefinitions>
+      <text><![CDATA[/* For this question the state needed is the set of found roots. The cardinality of that set will track the scene number for this question, which is nice and simple. If we wanted to keep track of the actual input order of the found roots we could use a list instead, but this is cleaner. */
+/* The declaration says that we need a writeable instance variable with an empty set as the initial value. */
+dumvar:stack_state_declare("rw","instance","foundOnes",{});]]></text>
+    </variabledefinitions>
+    <questionvariables>
+      <text><![CDATA[/* In this question we need four distinct roots as but we only ask for three of them, this code simply picks random roots and builds the polynomial. */
+zs:{};
+optset:{-4,-3,-2,2,3,4,5};
+zs:union(zs,set(rand(listify(setdifference(optset,zs)))));
+zs:union(zs,set(rand(listify(setdifference(optset,zs)))));
+zs:union(zs,set(rand(listify(setdifference(optset,zs)))));
+zs:union(zs,set(rand(listify(setdifference(optset,zs)))));
+fullPoly:expand(rreduce("*",map("-",[x,x,x,x],listify(zs))))]]></text>
+    </questionvariables>
+    <specificfeedback format="html">
+      <text></text>
+    </specificfeedback>
+    <questionnote>
+      <text>{@zs@}</text>
+    </questionnote>
+    <questionsimplify>1</questionsimplify>
+    <assumepositive>0</assumepositive>
+    <prtcorrect format="html">
+      <text>Correct answer, well done.</text>
+    </prtcorrect>
+    <prtpartiallycorrect format="html">
+      <text>Your answer is partially correct.</text>
+    </prtpartiallycorrect>
+    <prtincorrect format="html">
+      <text>Incorrect answer.</text>
+    </prtincorrect>
+    <multiplicationsign>dot</multiplicationsign>
+    <sqrtsign>1</sqrtsign>
+    <complexno>i</complexno>
+    <inversetrig>cos-1</inversetrig>
+    <matrixparens>[</matrixparens>
+    <variantsselectionseed></variantsselectionseed>
+    <input>
+      <name>ans1</name>
+      <type>algebraic</type>
+      <tans>listify(zs)[1]</tans>
+      <boxsize>5</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>ans2</name>
+      <type>algebraic</type>
+      <tans>listify(zs)[2]</tans>
+      <boxsize>5</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <input>
+      <name>ans3</name>
+      <type>algebraic</type>
+      <tans>listify(zs)[3]</tans>
+      <boxsize>5</boxsize>
+      <strictsyntax>1</strictsyntax>
+      <insertstars>0</insertstars>
+      <syntaxhint></syntaxhint>
+      <forbidwords></forbidwords>
+      <allowwords></allowwords>
+      <forbidfloat>1</forbidfloat>
+      <requirelowestterms>0</requirelowestterms>
+      <checkanswertype>0</checkanswertype>
+      <mustverify>1</mustverify>
+      <showvalidation>1</showvalidation>
+      <options></options>
+    </input>
+    <prt>
+      <name>prt1</name>
+      <value>1.0000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[ts:zs;
+dumvar:if is(elementp(ans1,ts)) then (stack_state_set("instance","foundOnes",union(set(ans1),stack_state_get("instance","foundOnes"))));]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>card</sans>
+        <tans>1</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>prt1-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text><![CDATA[<p>That is a correct one, but you won't see this</p>]]></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>prt1-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text><![CDATA[<p>{@ans1@} is not a root of {@expand(rreduce("*",map("-",[x,x,x,x],listify(setdifference(zs,stack_state_get("instance","foundOnes"))))))@} , try again.</p>]]></text>
+        </falsefeedback>
+      </node>
+    </prt>
+    <prt>
+      <name>prt2</name>
+      <value>1.0000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[ts:setdifference(zs,stack_state_get("instance","foundOnes"));
+dumvar:if is(elementp(ans2,ts)) then (stack_state_set("instance","foundOnes",union(set(ans2),stack_state_get("instance","foundOnes"))));]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>card</sans>
+        <tans>1</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>prt2-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text><![CDATA[<p>That is a correct one, but you won't see this</p>]]></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>1</falsenextnode>
+        <falseanswernote>prt2-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text><![CDATA[<p>{@ans2@} is not a root of {@expand(rreduce("*",map("-",[x,x,x],listify(setdifference(zs,stack_state_get("instance","foundOnes"))))))@} , try again.</p>]]></text>
+        </falsefeedback>
+      </node>
+      <node>
+        <name>1</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>ans2</sans>
+        <tans><![CDATA[elementp(ans2,stack_state_get("instance","foundOnes"))]]></tans>
+        <testoptions></testoptions>
+        <quiet>0</quiet>
+        <truescoremode>+</truescoremode>
+        <truescore>0.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>prt2-2-T</trueanswernote>
+        <truefeedback format="html">
+          <text><![CDATA[<p>You have already given that root of the full polynomial</p>]]></text>
+        </truefeedback>
+        <falsescoremode>-</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>prt2-2-F</falseanswernote>
+        <falsefeedback format="html">
+          <text></text>
+        </falsefeedback>
+      </node>
+    </prt>
+    <prt>
+      <name>prt3</name>
+      <value>1.0000000</value>
+      <autosimplify>1</autosimplify>
+      <feedbackvariables>
+        <text><![CDATA[ts:setdifference(zs,stack_state_get("instance","foundOnes"));
+dumvar:if elementp(ans3,ts) then (stack_state_set("instance","foundOnes",union(set(ans3),stack_state_get("instance","foundOnes"))));]]></text>
+      </feedbackvariables>
+      <node>
+        <name>0</name>
+        <answertest>AlgEquiv</answertest>
+        <sans>card</sans>
+        <tans>1</tans>
+        <testoptions></testoptions>
+        <quiet>1</quiet>
+        <truescoremode>=</truescoremode>
+        <truescore>1.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>prt3-1-T</trueanswernote>
+        <truefeedback format="html">
+          <text><![CDATA[<p>That is a correct one, but you won't see this</p>]]></text>
+        </truefeedback>
+        <falsescoremode>=</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>1</falsenextnode>
+        <falseanswernote>prt3-1-F</falseanswernote>
+        <falsefeedback format="html">
+          <text><![CDATA[<p>{@ans3@} is not a root of {@expand(rreduce("*",map("-",[x,x],listify(setdifference(zs,stack_state_get("instance","foundOnes"))))))@} , try again.</p>]]></text>
+        </falsefeedback>
+      </node>
+      <node>
+        <name>1</name>
+        <answertest>AlgEquiv</answertest>
+        <sans><![CDATA[elementp(ans3,stack_state_get("instance","foundOnes"))]]></sans>
+        <tans>true</tans>
+        <testoptions></testoptions>
+        <quiet>0</quiet>
+        <truescoremode>+</truescoremode>
+        <truescore>0.0000000</truescore>
+        <truepenalty></truepenalty>
+        <truenextnode>-1</truenextnode>
+        <trueanswernote>prt3-2-T</trueanswernote>
+        <truefeedback format="html">
+          <text><![CDATA[<p>You have already given that root of the full polynomial</p>]]></text>
+        </truefeedback>
+        <falsescoremode>-</falsescoremode>
+        <falsescore>0.0000000</falsescore>
+        <falsepenalty></falsepenalty>
+        <falsenextnode>-1</falsenextnode>
+        <falseanswernote>prt3-2-F</falseanswernote>
+        <falsefeedback format="html">
+          <text></text>
+        </falsefeedback>
+      </node>
+    </prt>
+  </question>
+
+</quiz>
