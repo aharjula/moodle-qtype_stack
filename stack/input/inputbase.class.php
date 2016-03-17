@@ -79,7 +79,7 @@ abstract class stack_input {
     protected $vardefsession;
 
     /**
-     * Constructor
+     * Constructor(3)
      *
      * @param string $name the name of the input. This is the name of the
      *      POST variable that the input from this element will be submitted as.
@@ -106,6 +106,15 @@ abstract class stack_input {
                 $this->set_parameter($name, $value);
             }
         }
+
+        $this->internal_contruct();
+    }
+
+    /* This allows each input type to adapt to the values of parameters.  For example, the dropdown
+     * uses this to sort out options.
+     */
+    protected function internal_contruct() {
+        return true;
     }
 
     /**
@@ -254,7 +263,7 @@ abstract class stack_input {
      */
     public function get_teacher_answer_display($value, $display) {
         // By default, we don't show how to "type this in".  This is only done for some, e.g. algebraic and textarea.
-        return stack_string('teacheranswershow_disp', array('display' => $display));
+        return stack_string('teacheranswershow_disp', array('display' => '\( '.$display.' \)'));
     }
 
     /**
@@ -297,9 +306,7 @@ abstract class stack_input {
 
         // Send the string to the CAS.
         if ($valid) {
-            if (!$this->get_parameter('sameType')) {
-                $teacheranswer = null;
-            }
+            $validationmethod = $this->get_validation_method();
 
             $singlevarchars = false;
             if (2 == $this->get_parameter('insertStars', 0)) {
@@ -313,8 +320,8 @@ abstract class stack_input {
 
             $answer->set_cas_validation_casstring($this->name,
                     $this->get_parameter('forbidFloats', false), $this->get_parameter('lowestTerms', false),
-                    $singlevarchars,
-                    $teacheranswer, $this->get_parameter('allowWords', ''));
+                    $singlevarchars, $teacheranswer,
+                    $validationmethod, $this->get_parameter('allowWords', ''));
             $localoptions->set_option('simplify', false);
 
             $session = new stack_cas_session(array($answer, $lvars), $localoptions, 0);
@@ -359,6 +366,17 @@ abstract class stack_input {
         return new stack_input_state($status, $contents, $interpretedanswer, $display, $errors, $note, $lvarsdisp);
     }
 
+    /* Allow different input types to change the CAS method used.
+     * In particular, the units test does something different here.
+     */
+    protected function get_validation_method() {
+        $validationmethod = 'checktype';
+        if (!$this->get_parameter('sameType')) {
+            $validationmethod = 'typeless';
+        }
+        return $validationmethod;
+    }
+
     /**
      * Decide if the contents of this attempt is blank.
      *
@@ -384,7 +402,8 @@ abstract class stack_input {
      * For example, Matrix types have two dimensional contents arrays to loop over.
      *
      * @param array $contents the content array of the student's input.
-     * @param array $forbiddenkeys is an array of keys of casstings from the question variables which must not appear in the student's input.
+     * @param array $forbiddenkeys is an array of keys of casstings from the question variables which
+     *                             must not appear in the student's input.
      * @return array of the validity, errors strings and modified contents.
      */
     protected function validate_contents($contents, $forbiddenkeys) {
@@ -489,9 +508,16 @@ abstract class stack_input {
         }
 
         if ($this->get_parameter('showValidation', 1) == 1 && !($state->lvars === '' or $state->lvars === '[]')) {
-            $feedback .= html_writer::tag('p', stack_string('studentValidation_listofvariables', $state->lvars));
+            $feedback .= $this->tag_listofvariables($state->lvars);
         }
         return $feedback;
+    }
+
+    /* Allows individual input types to change the way the list of variables is tagged.
+     * Used by the units input type.
+     */
+    protected function tag_listofvariables($vars) {
+        return html_writer::tag('p', stack_string('studentValidation_listofvariables', $vars));
     }
 
     /**
@@ -523,6 +549,15 @@ abstract class stack_input {
         } else {
             return '';
         }
+    }
+
+    /**
+     * This is used by the question to get the teacher's correct response.
+     * The dropdown type needs to intercept this to filter the correct answers.
+     * @param unknown_type $in
+     */
+    public function get_correct_response($in) {
+        return $this->maxima_to_response_array($in);
     }
 
     /**

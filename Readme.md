@@ -17,13 +17,12 @@ STACK continues to be used at Loughborough University, the Open University and t
 
 Please continue to report any bugs you find at https://github.com/maths/moodle-qtype_stack/issues.
 
-The [current state of development](doc/en/Developer/Development_track.md) is explain more fully in
-the [developer documentation](doc/en/Developer/index.md).
+The [current state of development](https://github.com/maths/moodle-qtype_stack/blob/master/doc/en/Developer/Development_track.md) is explain more fully in the [developer documentation](https://github.com/maths/moodle-qtype_stack/blob/master/doc/en/Developer/index.md).
 
 
 ## Documentation
 
-The [documentation is here](doc/en/index.md), including the [installation instructions](doc/en/Installation/index.md).
+The [documentation is here](https://github.com/maths/moodle-qtype_stack/blob/master/doc/en/index.md), including the [installation instructions](https://github.com/maths/moodle-qtype_stack/blob/master/doc/en/Installation/index.md).
 
 
 ## License

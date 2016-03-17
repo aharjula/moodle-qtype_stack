@@ -146,7 +146,6 @@ class stack_cas_text_test extends qtype_stack_testcase {
         $ct->get_display_castext();
         $this->assertFalse($ct->get_valid());
         $this->assertEquals('<span class="error">CASText failed validation. </span> PARSE ERROR: Multiple else branches in an if block.', $ct->get_errors(false));
-
     }
 
     public function test_broken_block_error() {
