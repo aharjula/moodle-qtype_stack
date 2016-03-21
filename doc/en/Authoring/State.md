@@ -161,3 +161,29 @@ Through the `stack_state_get()`-function one can also read (never write) things 
  * `'previous-input-?'` = the value of specific input during the previous attempt. Only works for inputs required by this PRT
  * `'count-attempts'` = integer
 
+
+# Convenience functions
+
+As the state variables often store lists or sets you often write code that retrieves a state-variable does something to it and then
+stores it again. To avoid having to write the whole commands we provide some shorthand functions that do the following:
+
+```stack_state_FCN(scope,varname,parameter) = stack_state_set(scope,varname,FCN(stack_state_get(scope,varname),parameter))```
+
+Like the ```stack_state_set()```-function all of them return the value as it is being set. currently there exist these functions:
+
+* Functions on lists. Obviously work only if the state-variable is a list.
+ * ```stack_state_append(scope,varname,listtoappend)```, joins two lists together adds the new lists items to the end of the
+   existing, give it a list as a parameter [append](http://maxima.sourceforge.net/docs/manual/maxima_5.html#Item_003a-append)
+ * ```stack_state_push(scope,varname,item)```, adds one item to the start of the list, give it an raw item
+   [push](http://maxima.sourceforge.net/docs/manual/maxima_5.html#Item_003a-push)
+ * ```stack_state_rest(scope,varname,index)```, removes items from the beginning or the end of a list, give it an integer as a
+   parameter [rest](http://maxima.sourceforge.net/docs/manual/maxima_5.html#Item_003a-rest)
+* Functions on sets. Again only work if your state-variable is a set.
+ * ```stack_state_union(scope,varname,set)```, replaces the value with an union of the current and the parameter give a set as a
+   parameter [union](http://maxima.sourceforge.net/docs/manual/maxima_35.html#Item_003a-union)
+ * ```stack_state_intersection(scope,varname,set)```, replaces the value with an intersection of the current and the parameter give
+   a set as a parameter [intersection](http://maxima.sourceforge.net/docs/manual/maxima_35.html#Item_003a-intersection)
+ * ```stack_state_setdifference(scope,varname,set)```, removes the given sets elements from the stored set give a set as a parameter
+   [setdifference](http://maxima.sourceforge.net/docs/manual/maxima_35.html#Item_003a-setdifference)
+
+

@@ -18,7 +18,7 @@
 /*  State variable related functions and definitions for STACK  */
 /*                                                              */
 /*  Matti Harjula <matti.harjula@aalto.fi>                      */
-/*  V0.62 August 2015                                           */
+/*  V0.81 March 2016                                            */
 /*                                                              */
 /****************************************************************/
 
@@ -171,4 +171,41 @@ stack_state_update_prt(prtname,newdata) :=block([data,prev],
             stack_state_load_prt(prtname)
         )
     )
+);
+
+/* Convenience functions, TODO: add type checks for the params... */
+stack_state_append(ctx,name,param) := block([tmp],
+    tmp:stack_state_get(ctx,name),
+    tmp:append(tmp,param),
+    return(stack_state_set(ctx,name,tmp))
+);
+
+stack_state_push(ctx,name,param) := block([tmp],
+    tmp:stack_state_get(ctx,name),
+    tmp:push(tmp,param),
+    return(stack_state_set(ctx,name,tmp))
+);
+
+stack_state_rest(ctx,name,param) := block([tmp],
+    tmp:stack_state_get(ctx,name),
+    tmp:rest(tmp,param),
+    return(stack_state_set(ctx,name,tmp))
+);
+
+stack_state_union(ctx,name,param) := block([tmp],
+    tmp:stack_state_get(ctx,name),
+    tmp:union(tmp,param),
+    return(stack_state_set(ctx,name,tmp))
+);
+
+stack_state_intersection(ctx,name,param) := block([tmp],
+    tmp:stack_state_get(ctx,name),
+    tmp:intersection(tmp,param),
+    return(stack_state_set(ctx,name,tmp))
+);
+
+stack_state_setdifference(ctx,name,param) := block([tmp],
+    tmp:stack_state_get(ctx,name),
+    tmp:setdifference(tmp,param),
+    return(stack_state_set(ctx,name,tmp))
 );

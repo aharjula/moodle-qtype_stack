@@ -296,6 +296,23 @@ class stack_cas_keyval {
                                 $references['errors'][] = stack_string('statelongnameandincrement', array(
                                         'length' => strlen('[i]' . $name) - 18));
                             }
+                        } else if ($fnc == 'stack_state_append' || $fnc == 'stack_state_push' || $fnc == 'stack_state_rest' ||
+                                $fnc == 'stack_state_union' || $fnc == 'stack_state_intersection' ||
+                                $fnc == 'stack_state_setdifference') {
+                            $context = $params[0];
+                            $name = $params[1];
+                            $value = $params[2];
+                            if (!array_key_exists($context, $references['writes'])) {
+                                $references['writes'][$context] = array();
+                            }
+                            $references['writes'][$context][$name] = true;
+                            if (count($params) != 3){
+                                if (!array_key_exists('errors', $references)) {
+                                    $references['errors'] = array();
+                                }
+                                $references['errors'][] = stack_string('functionwithwrongnumberofparameters',
+                                        array('function' => $fnc, 'parameters' => implode(',', $params), 'correct' => 3));
+                            }
                         } else if ($fnc == 'stack_state_full_state') {
                             // A special function someone might use to debug things.
                             if (count($params) != 1){
