@@ -32,7 +32,6 @@ require_once(__DIR__ . '/../options.class.php');
 require_once(__DIR__ . '/../utils.class.php');
 require_once(__DIR__ . '/evaluatable_object.interfaces.php');
 
-
 class stack_cas_session2 {
   
 	private $statements;
@@ -50,6 +49,12 @@ class stack_cas_session2 {
     	$this->instantiated = false;
     	$this->errors = array();
     	$this->statements = $statements;
+
+    	foreach ($statements as $statement) {
+    		if (!is_subclass_of($statement, 'cas_evaluatable')) {
+    			throw new stack_exception('stack_cas_session: items in $statements must be cas_evaluatable.');
+    		}
+    	}
 
         if ($options === null) {
             $this->options = new stack_options();

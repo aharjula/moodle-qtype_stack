@@ -16,7 +16,7 @@ class stack_ast_filter_pipeline implements stack_cas_astfilter {
     public function filter(MP_Node $ast, array &$errors, array &$answernotes, stack_cas_security $identifierrules): MP_Node {
     	$filtered = $ast;
     	foreach ($this->filters as $filter) {
-    		$filtered = $filter->filter($ast, $errors, $answernotes, $identifierrules);
+    		$filtered = $filter->filter($filtered, $errors, $answernotes, $identifierrules);
     	}
     	return $filtered;
     }
