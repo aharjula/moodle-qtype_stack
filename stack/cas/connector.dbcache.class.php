@@ -65,6 +65,44 @@ class stack_cas_connection_db_cache implements stack_cas_connection {
         return $result;
     }
 
+    public function json_compute($command): array {
+        $cached = $this->get_cached_result($command);
+        if ($cached->result) {
+            $this->debug->log('Maxima command', $command);
+            // @codingStandardsIgnoreStart
+            $this->debug->log('Unpacked result found in the DB cache', print_r($cached->result, true));
+            // @codingStandardsIgnoreEnd
+            return json_decode($cached->result, true);
+        }
+        $this->debug->log('Maxima command not found in the cache. Using the raw connection.');
+        $this->debug->log('Maxima command', $command);
+        $raw = $this->rawconnection->call_maxima($command);
+        $this->debug->log('CAS result', $rawresult);
+
+        $startmark = 'STACK-OUTPUT-BEGINS>';
+        $endmark = '<STACK-OUTPUT-ENDS';
+
+        $split = $raw;
+        if (core_text::strpos($split, $startmark) === false) {
+            $this->debug->log('Timedout', true);
+            return array('timeout' => true);
+        }
+        $split = core_text::substr($split, core_text::strpos($split, $startmark) + core_text::strlen($startmark));
+
+        if (core_text::strpos($split, $endmark) === false) {
+            $this->debug->log('Timedout', 'in the middle of output');
+            return array('timeout' => true);
+        }
+        $split = core_text::substr($split, 0, core_text::strpos($split, $endmark));
+        
+        $parsed = json_decode($split, true);
+        $this->add_to_cache($command, $split, $cached->key);
+        $this->debug->log('Parsed result as', print_r($parsed, true));
+
+        return $parsed;
+    }
+
+
     public function get_debuginfo() {
         return $this->debug->get_log();
     }

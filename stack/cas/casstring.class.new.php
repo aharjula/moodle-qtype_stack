@@ -11,9 +11,10 @@ require_once(__DIR__ . '/../utils.class.php');
 require_once(__DIR__ . '/../maximaparser/utils.php');
 require_once(__DIR__ . '/../maximaparser/corrective_parser.php');
 require_once(__DIR__ . '/../maximaparser/MP_classes.php');
+require_once(__DIR__ . '/evaluatable_object.interfaces.php');
 
 
-class stack_cas_casstring_new {
+class stack_cas_casstring_new implements cas_value_extractor, cas_latex_extractor{
 
 	// NOTES:
 	//  1. this does not provide means of storing the results of evaluation.
@@ -143,6 +144,16 @@ class stack_cas_casstring_new {
      */
     private $conditions;
 
+    /**
+     * AST value coming back from CAS
+     */
+    private $evaluated;
+
+    /**
+     * LaTeX value coming back from CAS
+     */
+    private $latex;
+
 
     private function __constructor($ast, string $source, string $context, 
     							   stack_cas_security $securitymodel, 
@@ -242,7 +253,7 @@ class stack_cas_casstring_new {
         return $casstring;
     }
 
-    public function get_key() {
+    public function get_key(): string {
     	// If this is an assignment type of an casstring we can return its 
     	// target "key".
     	$key = '';
@@ -258,8 +269,24 @@ class stack_cas_casstring_new {
     }
 
 
+    // Various cassession2 communication
+	public function set_cas_status(array $errors) {
+		if (count($errors) > 0) {
+			$this->errors = array_merge($this->errors, $errors);
+		}
+	}
+	
+	public function get_source_context(): string {
+		return $this->context;
+	}
 
+	public function set_cas_evaluated_value(MP_Node $ast) {
+		$this->evaluated = $ast;
+	}
 
+	public function set_cas_latex_value(string $latex) {
+		$this->latex = $latex;
+	}
 
 
 
